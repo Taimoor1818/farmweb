@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read and write their own data
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow anyone to read user documents (needed for MPIN login before authentication)
+    // But only allow authenticated users to write their own data
+    match /users/{userId} {
+      allow read: if true;  // Public read for MPIN login
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow MPIN storage and verification
+    match /users/{userId}/security/mpin {
+      // Allow users to write their own MPIN when authenticated
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // Allow anyone to read MPIN for login verification (before authentication)
+      allow read: if true;
+    }
+
+    // Fallback: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

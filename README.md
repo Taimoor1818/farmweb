@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rehmat Dairy - Quick Start Guide
 
-## Getting Started
+## ✅ Fixed Issues
 
-First, run the development server:
+1. **Tools Dashboard** - Now shows a proper landing page with cards for each tool
+2. **Milk Entry (Cow/Buffalo)** - Added helpful message with link to add customers when none exist
+3. **All forms are working** - Date, Shift selectors, and input fields are all functional
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Getting Started
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Step 1: Add Customers First
+Before entering milk data, you need to add customers:
+1. Click **"Users"** in the sidebar
+2. Click **"Add Customer"**
+3. Fill in:
+   - Customer ID (e.g., 1, 2, 3)
+   - Name
+   - Phone (optional)
+   - Rate (PKR per liter)
+4. Click **"Save"**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Step 2: Enter Milk Data
+Once you have customers:
+1. Go to **"Cow Milk"** or **"Buffalo Milk"**
+2. Select the **Date**
+3. Select the **Shift** (Morning/Evening)
+4. Enter quantities for each customer
+5. Click **"Save All"**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Step 3: View Reports
+- **Daily Record**: View and download PDF of daily milk collection
+- **Monthly Record**: Generate date-range reports and export to Excel
 
-## Learn More
+### Step 4: Use Tools
+Click **"Tools"** in the sidebar to access:
+- **Purchasing**: Create and manage purchase orders
+- **Issue Payments**: Manage employee payments
+- **Consumption**: Track item consumption
+- **Notes**: Keep farm notes
 
-To learn more about Next.js, take a look at the following resources:
+## 📝 Important Notes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- The app is running at: http://localhost:3000
+- All data is stored in Firebase Firestore
+- PDF exports work for Daily Records and PO documents
+- Excel exports work for Monthly Records
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🐛 If You See Errors
 
-## Deploy on Vercel
+1. **"No customers found"** - Add customers in the Users section first
+2. **Firebase errors** - Check your `.env.local` file has correct credentials
+3. **Page not loading** - Refresh the browser or restart the dev server
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Enjoy managing your dairy farm! 🐄🥛
