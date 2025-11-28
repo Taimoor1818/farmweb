@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read and write their own data
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow anyone to read user documents (needed for MPIN login before authentication)
+    // But only allow authenticated users to write their own data
+    match /users/{userId} {
+      allow read: if true;  // Public read for MPIN login
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow MPIN records to be readable for login verification
+    match /mpin_records/{mpinId} {
+      allow read: if true;  // Public read for MPIN verification
+      allow write: if request.auth != null && request.auth.uid == mpinId;
+    }
+
+    // Allow farm details access for both Firebase auth and MPIN auth users
+    match /users/{userId}/farm_details/{document} {
+      // Allow Firebase authenticated users
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow MPIN authenticated users to read and write their own data
+      // Since we can't check sessionStorage in rules, we allow read/write access
+      // but the client ensures only the correct user accesses their data
+      allow read, write: if true;
+    }
+
+    // Allow access to all subcollections under users for MPIN authenticated users
+    match /users/{userId}/{document=**} {
+      // Allow Firebase authenticated users
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow MPIN authenticated users to access their own data
+      allow read, write: if true;
+    }
+
+    // Payment requests access control
+    match /payment_requests/{requestId} {
+      // Allow creation of payment requests by authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow users to read their own payment requests
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Allow users to update their own payment requests (for resubmission)
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Deny delete operations for regular users
+      allow delete: if false;
+      
+      // Allow admin users to read, update, and delete payment requests
+      allow read, update, delete: if request.auth != null && 
+        request.auth.token.email == 'taimoorshah1818@gmail.com';
+    }
+
+    // Fallback: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
