@@ -29,11 +29,15 @@ body {
   /* Prevent flash of unstyled content */
   opacity: 1;
   transition: opacity 0.1s ease-in;
+  /* Better mobile scrolling */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Prevent content from shifting during load */
 html {
   overflow-y: scroll;
+  /* Better mobile support */
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Smooth scrolling for better UX */
@@ -52,5 +56,49 @@ html {
   textarea {
     font-size: 16px !important;
   }
+  
+  /* Better mobile tap targets */
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text selection on mobile */
+  body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Better mobile input appearance */
+  input, textarea, select {
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
 }
 
+/* Responsive images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Focus styles for accessibility */
+*:focus {
+  outline: 2px solid #4ade80;
+  outline-offset: 2px;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}

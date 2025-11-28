@@ -79,16 +79,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3">
                         <button
                             type="button"
-                            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500"
+                            className="-ml-0.5 -mt-0.5 h-10 w-10 sm:h-12 sm:w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500"
                             onClick={() => setSidebarOpen(true)}
                         >
                             <span className="sr-only">Open sidebar</span>
-                            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+                            <Bars3Icon className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden="true" />
                         </button>
                     </div>
                     <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
-                        <div className="py-6">
-                            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                        <div className="py-4 sm:py-6">
+                            <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 md:px-8">
                             <SubscriptionGuard>
                                 {children}
                             </SubscriptionGuard>

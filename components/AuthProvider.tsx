@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuthStore } from '@/lib/store';
@@ -10,6 +10,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const { user, setUser, setLoading } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
+    const [initialLoad, setInitialLoad] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
@@ -69,6 +70,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             }
 
             setLoading(false);
+            setInitialLoad(false);
 
             // Handle routing based on auth state
             if (!firebaseUser && !isMpinAuthenticated && pathname.startsWith('/dashboard')) {
@@ -88,6 +90,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             router.push('/dashboard');
         }
     }, [user, pathname, router]);
+
+    // Show loading state while determining auth status
+    if (initialLoad && typeof window !== 'undefined') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+            </div>
+        );
+    }
 
     return <>{children}</>;
 }

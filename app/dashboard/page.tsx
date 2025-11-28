@@ -163,11 +163,20 @@ export default function DashboardPage() {
         }));
     };
 
+    // Show loading state while auth is being determined
+    if (loading && !farmDetails) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4 md:p-8">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-2 sm:p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 sm:mb-6">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
                     {subscriptionData && (
                         <div className="mt-2 md:mt-0 flex items-center space-x-3">
                             <div className="text-sm">
@@ -195,9 +204,9 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Farm Details Section */}
-                <div className="bg-white rounded-xl shadow p-4 mb-6 transition-all duration-300 hover:shadow-md">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-gray-900">Farm Details</h2>
+                <div className="bg-white rounded-xl shadow p-3 sm:p-4 mb-4 sm:mb-6 transition-all duration-300 hover:shadow-md">
+                    <div className="flex justify-between items-center mb-3 sm:mb-4">
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-900">Farm Details</h2>
                     </div>
 
                     {loading ? (
@@ -207,9 +216,9 @@ export default function DashboardPage() {
                     ) : isEditing ? (
                         // Edit Form
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Farm Name</label>
+                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Farm Name</label>
                                     <input
                                         type="text"
                                         value={formData.farmName}
@@ -219,7 +228,7 @@ export default function DashboardPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label>
                                     <input
                                         type="text"
                                         value={formData.city}
@@ -229,7 +238,7 @@ export default function DashboardPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact</label>
+                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Contact</label>
                                     <input
                                         type="text"
                                         value={formData.contact}
@@ -242,14 +251,14 @@ export default function DashboardPage() {
                             <div className="flex space-x-3 pt-2">
                                 <button
                                     onClick={handleSave}
-                                    className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
+                                    className="flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-xs sm:text-sm"
                                 >
                                     <CheckIcon className="h-4 w-4 mr-1" />
                                     Save
                                 </button>
                                 <button
                                     onClick={handleCancel}
-                                    className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 text-sm"
+                                    className="flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 text-xs sm:text-sm"
                                 >
                                     <XMarkIcon className="h-4 w-4 mr-1" />
                                     Cancel
@@ -259,24 +268,24 @@ export default function DashboardPage() {
                     ) : farmDetails ? (
                         // Display Farm Details
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-3 rounded-lg shadow-sm border border-green-100">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-2 sm:p-3 rounded-lg shadow-sm border border-green-100">
                                     <p className="text-xs font-medium text-gray-500 mb-0.5">Farm Name</p>
-                                    <p className="font-semibold text-gray-900 truncate">{farmDetails.farmName}</p>
+                                    <p className="font-semibold text-gray-900 truncate text-sm sm:text-base">{farmDetails.farmName}</p>
                                 </div>
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-3 rounded-lg shadow-sm border border-green-100">
+                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-2 sm:p-3 rounded-lg shadow-sm border border-green-100">
                                     <p className="text-xs font-medium text-gray-500 mb-0.5">City</p>
-                                    <p className="font-semibold text-gray-900 truncate">{farmDetails.city}</p>
+                                    <p className="font-semibold text-gray-900 truncate text-sm sm:text-base">{farmDetails.city}</p>
                                 </div>
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-3 rounded-lg shadow-sm border border-green-100">
+                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-2 sm:p-3 rounded-lg shadow-sm border border-green-100">
                                     <p className="text-xs font-medium text-gray-500 mb-0.5">Contact</p>
-                                    <p className="font-semibold text-gray-900 truncate">{farmDetails.contact}</p>
+                                    <p className="font-semibold text-gray-900 truncate text-sm sm:text-base">{farmDetails.contact}</p>
                                 </div>
                             </div>
                             <div className="pt-2">
                                 <button
                                     onClick={handleEdit}
-                                    className="flex items-center px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-all duration-200 text-sm"
+                                    className="flex items-center px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-all duration-200 text-xs sm:text-sm"
                                 >
                                     <PencilIcon className="h-4 w-4 mr-1" />
                                     Edit Details
@@ -285,16 +294,16 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                         // Set Farm Details
-                        <div className="space-y-4 text-center py-6">
-                            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mb-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="space-y-4 text-center py-4 sm:py-6">
+                            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mb-2 sm:mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                 </svg>
                             </div>
-                            <p className="text-gray-600 text-sm">No farm details set yet. Please add your farm information.</p>
+                            <p className="text-gray-600 text-xs sm:text-sm">No farm details set yet. Please add your farm information.</p>
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="mx-auto flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
+                                className="mx-auto flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-xs sm:text-sm"
                             >
                                 Set Farm Details
                             </button>
@@ -303,29 +312,29 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Quick Actions Grid */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
+                <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 transition-all duration-300 hover:shadow-xl">
+                    <div className="flex justify-between items-center mb-4 sm:mb-6">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Quick Actions</h2>
                         {user?.email === 'taimoorshah1818@gmail.com' && (
                             <Link 
                                 href="/admin/payments"
-                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
                             >
                                 Admin Panel
                             </Link>
                         )}
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
                         {quickActions.map((action) => (
                             <Link
                                 key={action.name}
                                 href={action.href}
-                                className="group flex flex-col items-center justify-center p-3 rounded-xl shadow-sm hover:shadow transition-all duration-200 border border-gray-100 hover:border-green-200 bg-gradient-to-br from-white to-gray-50 hover:from-white hover:to-green-50"
+                                className="group flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl shadow-sm hover:shadow transition-all duration-200 border border-gray-100 hover:border-green-200 bg-gradient-to-br from-white to-gray-50 hover:from-white hover:to-green-50"
                             >
                                 <div className={`${action.color} p-2 rounded-xl mb-2 transition-all duration-200 group-hover:scale-105`}>
-                                    <action.icon className="h-6 w-6" aria-hidden="true" />
+                                    <action.icon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
                                 </div>
-                                <span className="text-xs font-medium text-gray-800 text-center group-hover:text-green-700 transition-colors duration-200">{action.name}</span>
+                                <span className="text-xs sm:text-sm font-medium text-gray-800 text-center group-hover:text-green-700 transition-colors duration-200">{action.name}</span>
                             </Link>
                         ))}
                     </div>
