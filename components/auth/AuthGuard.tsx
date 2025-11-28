@@ -26,10 +26,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     // Allow access if either Firebase user exists or MPIN authentication flag is set
-    const isMpinAuthenticated = sessionStorage.getItem('mpin_authenticated') === 'true';
-    if (!user && !isMpinAuthenticated) {
-        return null;
-    }
+    if (!user && sessionStorage.getItem('mpin_authenticated') !== 'true') return null;
 
     return <>{children}</>;
 }

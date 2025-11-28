@@ -200,9 +200,7 @@ export default function Sidebar() {
                                     // Clear sessionStorage on logout
                                     sessionStorage.removeItem('app_unlocked');
                                     sessionStorage.removeItem('user_data');
-                                    // Clear MPIN authentication flags
                                     sessionStorage.removeItem('mpin_authenticated');
-                                    sessionStorage.removeItem('mpin_user_uid');
                                     window.location.href = '/login';
                                 });
                             });
