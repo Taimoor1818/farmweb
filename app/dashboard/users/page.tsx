@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/store';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import PasskeyModal from '@/components/ui/PasskeyModal';
 
 interface Customer {
     id: string; // Firestore doc ID
@@ -20,7 +21,6 @@ interface Customer {
 interface FarmDetails {
     farmName: string;
     city: string;
-    country: string;
     contact: string;
 }
 
@@ -32,6 +32,11 @@ export default function UsersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [farmDetails, setFarmDetails] = useState<FarmDetails | null>(null);
+
+    // Passkey Modal state
+    const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+    const [passkeyAction, setPasskeyAction] = useState<'edit' | 'delete' | null>(null);
+    const [passkeyContext, setPasskeyContext] = useState<any>(null);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -72,12 +77,12 @@ export default function UsersPage() {
     // Fetch farm details
     useEffect(() => {
         if (!user) return;
-        
+
         const fetchFarmDetails = async () => {
             try {
                 const docRef = doc(db, `users/${user.uid}/farm_details`, 'info');
                 const docSnap = await getDoc(docRef);
-                
+
                 if (docSnap.exists()) {
                     setFarmDetails(docSnap.data() as FarmDetails);
                 }
@@ -85,7 +90,7 @@ export default function UsersPage() {
                 console.error('Error fetching farm details:', error);
             }
         };
-        
+
         fetchFarmDetails();
     }, [user]);
 
@@ -121,53 +126,62 @@ export default function UsersPage() {
     };
 
     const handleEdit = (customer: Customer) => {
-        const passkey = prompt('Enter passkey to edit:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
-        }
-        setEditingCustomer(customer);
-        setFormData({
-            customerId: customer.customerId,
-            name: customer.name,
-            phone: customer.phone || '',
-            cowRate: customer.cowRate?.toString() || '',
-            buffaloRate: customer.buffaloRate?.toString() || '',
-        });
-        setIsModalOpen(true);
+        setPasskeyAction('edit');
+        setPasskeyContext(customer);
+        setIsPasskeyModalOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        const passkey = prompt('Enter passkey to delete:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
+    const handleDelete = (id: string) => {
+        setPasskeyAction('delete');
+        setPasskeyContext(id);
+        setIsPasskeyModalOpen(true);
+    };
+
+    const handlePasskeySuccess = async () => {
+        if (!user || !passkeyContext) return;
+
+        if (passkeyAction === 'edit') {
+            const customer = passkeyContext as Customer;
+            setEditingCustomer(customer);
+            setFormData({
+                customerId: customer.customerId,
+                name: customer.name,
+                phone: customer.phone || '',
+                cowRate: customer.cowRate?.toString() || '',
+                buffaloRate: customer.buffaloRate?.toString() || '',
+            });
+            setIsModalOpen(true);
+        } else if (passkeyAction === 'delete') {
+            const id = passkeyContext as string;
+            if (!confirm('Are you sure you want to delete this customer?')) return;
+
+            try {
+                await deleteDoc(doc(db, `users/${user.uid}/user_data`, id));
+                toast.success('Customer deleted');
+            } catch (error) {
+                toast.error('Failed to delete customer');
+            }
         }
 
-        if (!user || !confirm('Are you sure you want to delete this customer?')) return;
-
-        try {
-            await deleteDoc(doc(db, `users/${user.uid}/user_data`, id));
-            toast.success('Customer deleted');
-        } catch (error) {
-            toast.error('Failed to delete customer');
-        }
+        setIsPasskeyModalOpen(false);
+        setPasskeyAction(null);
+        setPasskeyContext(null);
     };
 
     return (
         <div>
             {/* Farm Details Header */}
             {farmDetails && (
-                <div className="bg-white rounded-lg shadow p-4 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-3 mb-4">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">{farmDetails.farmName}</h2>
-                            <p className="text-gray-600">{farmDetails.city}, {farmDetails.country} | {farmDetails.contact}</p>
+                            <h2 className="text-lg font-bold text-gray-900">{farmDetails.farmName}</h2>
+                            <p className="text-gray-600 text-sm">{farmDetails.city} | {farmDetails.contact}</p>
                         </div>
                     </div>
                 </div>
             )}
-            
+
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
                 <button
@@ -346,6 +360,18 @@ export default function UsersPage() {
                     </div>
                 </div>
             )}
+
+            <PasskeyModal
+                isOpen={isPasskeyModalOpen}
+                onClose={() => {
+                    setIsPasskeyModalOpen(false);
+                    setPasskeyAction(null);
+                    setPasskeyContext(null);
+                }}
+                onSuccess={handlePasskeySuccess}
+                title={passkeyAction === 'delete' ? 'Confirm Deletion' : 'Confirm Edit'}
+                description="Please enter your MPIN to continue."
+            />
         </div>
     );
 }

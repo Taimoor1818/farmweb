@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'react-hot-toast';
 import { Tab } from '@headlessui/react';
-import { PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon, CurrencyRupeeIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon, CurrencyDollarIcon, UserGroupIcon, DocumentArrowDownIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 
@@ -31,14 +31,6 @@ interface Payment {
     createdAt: any;
 }
 
-interface FarmDetails {
-    farmName: string;
-    city: string;
-    country: string;
-    contact: string;
-    email?: string;
-}
-
 export default function PaymentsPage() {
     const { user } = useAuthStore();
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -46,7 +38,6 @@ export default function PaymentsPage() {
     const [loading, setLoading] = useState(true);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [employeePayments, setEmployeePayments] = useState<Payment[]>([]);
-    const [farmDetails, setFarmDetails] = useState<FarmDetails | null>(null);
 
     // Employee Form
     const [empName, setEmpName] = useState('');
@@ -171,60 +162,15 @@ export default function PaymentsPage() {
         }
     };
 
-    // Fetch farm details
-    useEffect(() => {
-        if (!user) return;
-        
-        const fetchFarmDetails = async () => {
-            try {
-                const docRef = doc(db, `users/${user.uid}/farm_details`, 'info');
-                const docSnap = await getDoc(docRef);
-                
-                if (docSnap.exists()) {
-                    setFarmDetails(docSnap.data() as FarmDetails);
-                }
-            } catch (error) {
-                console.error('Error fetching farm details:', error);
-            }
-        };
-        
-        fetchFarmDetails();
-    }, [user]);
-
     const exportPayments = () => {
-        // Get current date for header
-        const currentDate = format(new Date(), 'dd-MM-yyyy');
-        
-        // Create header rows
         const excelData = [];
-        
-        // Add farm details if available
-        if (farmDetails) {
-            excelData.push({ A: farmDetails.farmName, B: '', C: '', D: '', E: '' });
-            excelData.push({ A: `${farmDetails.city}, ${farmDetails.country}`, B: '', C: '', D: '', E: '' });
-            excelData.push({ A: `Contact: ${farmDetails.contact}`, B: '', C: '', D: '', E: '' });
-        }
-        
-        // Add date
-        excelData.push({ A: `Date: ${currentDate}`, B: '', C: '', D: '', E: '' });
-        
-        // Add separator line
-        excelData.push({ A: '----------------------------------------------------------', B: '', C: '', D: '', E: '' });
-        
-        // Add title
-        excelData.push({ A: '', B: '', C: 'PAYMENTS RECORD', D: '', E: '' });
-        
-        // Add another separator line
-        excelData.push({ A: '----------------------------------------------------------', B: '', C: '', D: '', E: '' });
-        
-        // Add empty row
+        excelData.push({ A: 'PAYMENTS RECORD', B: '', C: '', D: '', E: '' });
+        excelData.push({ A: `Date: ${format(new Date(), 'dd-MM-yyyy')}`, B: '', C: '', D: '', E: '' });
         excelData.push({ A: '', B: '', C: '', D: '', E: '' });
-        
-        // Add table data
         excelData.push({ A: 'Date', B: 'Employee', C: 'Amount', D: 'Status', E: '' });
-        
+
         payments.forEach(p => {
-            excelData.push({ 
+            excelData.push({
                 A: p.date,
                 B: p.employeeName,
                 C: p.amount,
@@ -232,18 +178,16 @@ export default function PaymentsPage() {
                 E: ''
             });
         });
-        
+
         const ws = XLSX.utils.json_to_sheet(excelData, { skipHeader: true });
-        
-        // Set column widths
         ws['!cols'] = [
-            { wch: 15 }, // A column
-            { wch: 20 }, // B column
-            { wch: 15 }, // C column
-            { wch: 15 }, // D column
-            { wch: 10 }  // E column
+            { wch: 15 },
+            { wch: 20 },
+            { wch: 15 },
+            { wch: 15 },
+            { wch: 10 }
         ];
-        
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Payments");
         XLSX.writeFile(wb, "payments.xlsx");
@@ -262,292 +206,364 @@ export default function PaymentsPage() {
     const totalPaid = employeePayments
         .filter(p => p.status === 'Received')
         .reduce((sum, p) => sum + p.amount, 0);
-        
+
     const totalPending = employeePayments
         .filter(p => p.status === 'Pending')
         .reduce((sum, p) => sum + p.amount, 0);
 
     return (
-        <div className="max-w-6xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Issue Payments</h1>
-
-            {selectedEmployee ? (
-                // Employee Details View
-                <div className="bg-white rounded-lg shadow">
-                    <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900">{selectedEmployee.name}</h2>
-                            <p className="text-gray-600">{selectedEmployee.role} • Salary: PKR {selectedEmployee.salary}</p>
-                        </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/30 to-orange-50/30">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {selectedEmployee ? (
+                    // Employee Details View
+                    <div>
                         <button
                             onClick={closeEmployeeDetails}
-                            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                            className="mb-6 flex items-center px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl transition-all duration-200"
                         >
+                            <ArrowLeftIcon className="h-5 w-5 mr-2" />
                             Back to All Employees
                         </button>
-                    </div>
-                    
-                    {/* Payment Statistics */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 border-b border-gray-200">
-                        <div className="bg-green-50 p-4 rounded-lg">
-                            <div className="flex items-center">
-                                <CurrencyRupeeIcon className="h-8 w-8 text-green-600" />
-                                <div className="ml-3">
-                                    <p className="text-sm font-medium text-green-900">Total Paid</p>
-                                    <p className="text-2xl font-bold text-green-700">PKR {totalPaid.toFixed(2)}</p>
+
+                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 overflow-hidden">
+                            <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-8 text-white">
+                                <div className="flex items-center space-x-4">
+                                    <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
+                                        <UserGroupIcon className="h-8 w-8" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold">{selectedEmployee.name}</h2>
+                                        <p className="text-amber-100">{selectedEmployee.role} • Salary: PKR {selectedEmployee.salary.toLocaleString()}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="bg-yellow-50 p-4 rounded-lg">
-                            <div className="flex items-center">
-                                <CurrencyRupeeIcon className="h-8 w-8 text-yellow-600" />
-                                <div className="ml-3">
-                                    <p className="text-sm font-medium text-yellow-900">Pending Payments</p>
-                                    <p className="text-2xl font-bold text-yellow-700">PKR {totalPending.toFixed(2)}</p>
+
+                            {/* Payment Statistics */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 border-b border-slate-200">
+                                <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-2xl border border-emerald-200/50">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-emerald-900">Total Paid</p>
+                                            <p className="text-3xl font-bold text-emerald-700 mt-1">PKR {totalPaid.toLocaleString()}</p>
+                                        </div>
+                                        <CheckCircleIcon className="h-8 w-8 text-emerald-600" />
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-2xl border border-amber-200/50">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-amber-900">Pending</p>
+                                            <p className="text-3xl font-bold text-amber-700 mt-1">PKR {totalPending.toLocaleString()}</p>
+                                        </div>
+                                        <XCircleIcon className="h-8 w-8 text-amber-600" />
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-200/50">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-blue-900">Total</p>
+                                            <p className="text-3xl font-bold text-blue-700 mt-1">PKR {(totalPaid + totalPending).toLocaleString()}</p>
+                                        </div>
+                                        <CurrencyDollarIcon className="h-8 w-8 text-blue-600" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                            <div className="flex items-center">
-                                <CurrencyRupeeIcon className="h-8 w-8 text-blue-600" />
-                                <div className="ml-3">
-                                    <p className="text-sm font-medium text-blue-900">Total Payments</p>
-                                    <p className="text-2xl font-bold text-blue-700">PKR {(totalPaid + totalPending).toFixed(2)}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Payment History */}
-                    <div className="p-6">
-                        <h3 className="text-lg font-medium mb-4">Payment History</h3>
-                        {employeePayments.length > 0 ? (
-                            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                                <ul className="divide-y divide-gray-200">
-                                    {employeePayments.map((payment) => (
-                                        <li key={payment.id} className="px-6 py-4 hover:bg-gray-50">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-lg font-semibold text-gray-900">PKR {payment.amount}</p>
-                                                    <p className="text-sm text-gray-500">
-                                                        Date: {payment.date}
-                                                    </p>
+
+                            {/* Payment History */}
+                            <div className="p-6">
+                                <h3 className="text-lg font-semibold text-slate-900 mb-4">Payment History</h3>
+                                {employeePayments.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {employeePayments.map((payment) => (
+                                            <div key={payment.id} className="bg-white rounded-xl p-4 border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all duration-200">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-lg font-bold text-slate-900">PKR {payment.amount.toLocaleString()}</p>
+                                                        <p className="text-sm text-slate-500">Date: {payment.date}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => toggleStatus(payment)}
+                                                        className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${payment.status === 'Received'
+                                                                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700'
+                                                                : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700'
+                                                            }`}
+                                                    >
+                                                        {payment.status === 'Received' ? (
+                                                            <CheckCircleIcon className="h-5 w-5 mr-1" />
+                                                        ) : (
+                                                            <XCircleIcon className="h-5 w-5 mr-1" />
+                                                        )}
+                                                        {payment.status}
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    onClick={() => toggleStatus(payment)}
-                                                    className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${payment.status === 'Received' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                                        }`}
-                                                >
-                                                    {payment.status === 'Received' ? (
-                                                        <CheckCircleIcon className="h-5 w-5 mr-1" />
-                                                    ) : (
-                                                        <XCircleIcon className="h-5 w-5 mr-1" />
-                                                    )}
-                                                    {payment.status}
-                                                </button>
                                             </div>
-                                        </li>
-                                    ))}
-                                </ul>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-10 text-slate-500 bg-slate-50 rounded-xl">
+                                        No payment history found for {selectedEmployee.name}.
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <div className="text-center py-10 text-gray-500">
-                                No payment history found for {selectedEmployee.name}.
-                            </div>
-                        )}
+                        </div>
                     </div>
-                </div>
-            ) : (
-                // Main Tabs View
-                <Tab.Group>
-                    <Tab.List className="flex space-x-1 rounded-xl bg-green-900/20 p-1 mb-6">
-                        <Tab className={({ selected }) =>
-                            classNames(
-                                'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-green-700',
-                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-green-400 focus:outline-none focus:ring-2',
-                                selected ? 'bg-white shadow' : 'text-green-100 hover:bg-white/[0.12] hover:text-white'
-                            )
-                        }>
-                            Payments
-                        </Tab>
-                        <Tab className={({ selected }) =>
-                            classNames(
-                                'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-green-700',
-                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-green-400 focus:outline-none focus:ring-2',
-                                selected ? 'bg-white shadow' : 'text-green-100 hover:bg-white/[0.12] hover:text-white'
-                            )
-                        }>
-                            Employees
-                        </Tab>
-                    </Tab.List>
-                    <Tab.Panels>
-                        <Tab.Panel>
-                            <div className="bg-white p-6 rounded-lg shadow mb-6">
-                                <h2 className="text-lg font-medium mb-4">Issue New Payment</h2>
-                                <form onSubmit={issuePayment} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Employee</label>
-                                        <select
-                                            value={payEmpId}
-                                            onChange={(e) => setPayEmpId(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                                            required
-                                        >
-                                            <option value="">Select Employee</option>
-                                            {employees.map(e => (
-                                                <option key={e.id} value={e.id}>{e.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Amount</label>
-                                        <input
-                                            type="number"
-                                            value={payAmount}
-                                            onChange={(e) => setPayAmount(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Date</label>
-                                        <input
-                                            type="date"
-                                            value={payDate}
-                                            onChange={(e) => setPayDate(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                                            required
-                                        />
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                                    >
-                                        Issue Payment
-                                    </button>
-                                </form>
+                ) : (
+                    // Main Tabs View
+                    <div>
+                        {/* Header */}
+                        <div className="mb-8">
+                            <div className="flex items-center space-x-4">
+                                <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg">
+                                    <CurrencyDollarIcon className="h-8 w-8 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                                        Issue Payments
+                                    </h1>
+                                    <p className="text-slate-600 mt-1">Manage employee payments and salaries</p>
+                                </div>
                             </div>
+                        </div>
 
-                            <div className="flex justify-end mb-4">
-                                <button
-                                    onClick={exportPayments}
-                                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                                >
-                                    Export Excel
-                                </button>
-                            </div>
-
-                            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                                <ul className="divide-y divide-gray-200">
-                                    {payments.map((payment) => (
-                                        <li key={payment.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-                                            <div>
-                                                <p className="text-lg font-semibold text-gray-900">{payment.employeeName}</p>
-                                                <p className="text-sm text-gray-500">
-                                                    Date: {payment.date} | Amount: PKR {payment.amount}
-                                                </p>
+                        <Tab.Group>
+                            <Tab.List className="flex space-x-2 rounded-2xl bg-white/80 backdrop-blur-sm p-2 mb-8 shadow-lg border border-slate-200/50">
+                                <Tab className={({ selected }) =>
+                                    classNames(
+                                        'w-full rounded-xl py-3 text-sm font-semibold leading-5 transition-all duration-200',
+                                        'focus:outline-none focus:ring-2 focus:ring-amber-500/50',
+                                        selected
+                                            ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg'
+                                            : 'text-slate-600 hover:bg-slate-100'
+                                    )
+                                }>
+                                    Payments
+                                </Tab>
+                                <Tab className={({ selected }) =>
+                                    classNames(
+                                        'w-full rounded-xl py-3 text-sm font-semibold leading-5 transition-all duration-200',
+                                        'focus:outline-none focus:ring-2 focus:ring-amber-500/50',
+                                        selected
+                                            ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg'
+                                            : 'text-slate-600 hover:bg-slate-100'
+                                    )
+                                }>
+                                    Employees
+                                </Tab>
+                            </Tab.List>
+                            <Tab.Panels>
+                                <Tab.Panel>
+                                    {/* Issue Payment Form */}
+                                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-6 mb-6">
+                                        <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center">
+                                            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg mr-3">
+                                                <CurrencyDollarIcon className="h-5 w-5 text-amber-600" />
                                             </div>
-                                            <button
-                                                onClick={() => toggleStatus(payment)}
-                                                className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${payment.status === 'Received' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                                    }`}
-                                            >
-                                                {payment.status === 'Received' ? (
-                                                    <CheckCircleIcon className="h-5 w-5 mr-1" />
-                                                ) : (
-                                                    <XCircleIcon className="h-5 w-5 mr-1" />
-                                                )}
-                                                {payment.status}
-                                            </button>
-                                        </li>
-                                    ))}
-                                    {payments.length === 0 && !loading && (
-                                        <li className="px-6 py-10 text-center text-gray-500">No payments found.</li>
-                                    )}
-                                </ul>
-                            </div>
-                        </Tab.Panel>
-
-                        <Tab.Panel>
-                            <div className="bg-white p-6 rounded-lg shadow mb-6">
-                                <h2 className="text-lg font-medium mb-4">Add Employee</h2>
-                                <form onSubmit={addEmployee} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Name</label>
-                                        <input
-                                            type="text"
-                                            value={empName}
-                                            onChange={(e) => setEmpName(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Role</label>
-                                        <input
-                                            type="text"
-                                            value={empRole}
-                                            onChange={(e) => setEmpRole(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Salary</label>
-                                        <input
-                                            type="number"
-                                            value={empSalary}
-                                            onChange={(e) => setEmpSalary(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                                            required
-                                        />
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                                    >
-                                        Add Employee
-                                    </button>
-                                </form>
-                            </div>
-
-                            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                                <ul className="divide-y divide-gray-200">
-                                    {employees.map((emp) => (
-                                        <li 
-                                            key={emp.id} 
-                                            className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer"
-                                            onClick={() => handleEmployeeClick(emp)}
-                                        >
+                                            Issue New Payment
+                                        </h2>
+                                        <form onSubmit={issuePayment} className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                             <div>
-                                                <p className="text-lg font-semibold text-gray-900">{emp.name}</p>
-                                                <p className="text-sm text-gray-500">Role: {emp.role} | Salary: PKR {emp.salary}</p>
-                                            </div>
-                                            <div className="flex items-center space-x-3">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        deleteEmployee(emp.id);
-                                                    }}
-                                                    className="text-red-600 hover:text-red-900"
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">Employee</label>
+                                                <select
+                                                    value={payEmpId}
+                                                    onChange={(e) => setPayEmpId(e.target.value)}
+                                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all duration-200 outline-none"
+                                                    required
                                                 >
-                                                    <TrashIcon className="h-5 w-5" />
-                                                </button>
-                                                <span className="text-green-600">
-                                                    <PlusIcon className="h-5 w-5" />
-                                                </span>
+                                                    <option value="">Select Employee</option>
+                                                    {employees.map(e => (
+                                                        <option key={e.id} value={e.id}>{e.name}</option>
+                                                    ))}
+                                                </select>
                                             </div>
-                                        </li>
-                                    ))}
-                                    {employees.length === 0 && !loading && (
-                                        <li className="px-6 py-10 text-center text-gray-500">No employees found.</li>
-                                    )}
-                                </ul>
-                            </div>
-                        </Tab.Panel>
-                    </Tab.Panels>
-                </Tab.Group>
-            )}
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">Amount</label>
+                                                <input
+                                                    type="number"
+                                                    value={payAmount}
+                                                    onChange={(e) => setPayAmount(e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all duration-200 outline-none"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={payDate}
+                                                    onChange={(e) => setPayDate(e.target.value)}
+                                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all duration-200 outline-none"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="flex items-end">
+                                                <button
+                                                    type="submit"
+                                                    className="w-full px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-medium"
+                                                >
+                                                    Issue Payment
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div className="flex justify-end mb-4">
+                                        <button
+                                            onClick={exportPayments}
+                                            className="flex items-center px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                                        >
+                                            <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+                                            Export Excel
+                                        </button>
+                                    </div>
+
+                                    {/* Payments List */}
+                                    <div className="space-y-3">
+                                        {payments.map((payment) => (
+                                            <div key={payment.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl border border-slate-200/50 hover:border-amber-300/50 transition-all duration-300 p-6">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-xl font-bold text-slate-900">{payment.employeeName}</p>
+                                                        <p className="text-sm text-slate-600 mt-1">
+                                                            Date: {payment.date} • Amount: PKR {payment.amount.toLocaleString()}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => toggleStatus(payment)}
+                                                        className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${payment.status === 'Received'
+                                                                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700'
+                                                                : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700'
+                                                            }`}
+                                                    >
+                                                        {payment.status === 'Received' ? (
+                                                            <CheckCircleIcon className="h-5 w-5 mr-1" />
+                                                        ) : (
+                                                            <XCircleIcon className="h-5 w-5 mr-1" />
+                                                        )}
+                                                        {payment.status}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {payments.length === 0 && !loading && (
+                                            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-12 text-center">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="p-4 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full mb-4">
+                                                        <CurrencyDollarIcon className="h-12 w-12 text-slate-400" />
+                                                    </div>
+                                                    <h3 className="text-lg font-semibold text-slate-900 mb-2">No Payments Yet</h3>
+                                                    <p className="text-slate-600">Issue your first payment to get started</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Tab.Panel>
+
+                                <Tab.Panel>
+                                    {/* Add Employee Form */}
+                                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-6 mb-6">
+                                        <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center">
+                                            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg mr-3">
+                                                <UserGroupIcon className="h-5 w-5 text-amber-600" />
+                                            </div>
+                                            Add New Employee
+                                        </h2>
+                                        <form onSubmit={addEmployee} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={empName}
+                                                    onChange={(e) => setEmpName(e.target.value)}
+                                                    placeholder="Employee name"
+                                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all duration-200 outline-none"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
+                                                <input
+                                                    type="text"
+                                                    value={empRole}
+                                                    onChange={(e) => setEmpRole(e.target.value)}
+                                                    placeholder="Job title"
+                                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all duration-200 outline-none"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">Salary</label>
+                                                <input
+                                                    type="number"
+                                                    value={empSalary}
+                                                    onChange={(e) => setEmpSalary(e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all duration-200 outline-none"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="flex items-end">
+                                                <button
+                                                    type="submit"
+                                                    className="w-full px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl hover:from-amber-700 hover:to-orange-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-medium"
+                                                >
+                                                    Add Employee
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    {/* Employees List */}
+                                    <div className="space-y-3">
+                                        {employees.map((emp) => (
+                                            <div
+                                                key={emp.id}
+                                                onClick={() => handleEmployeeClick(emp)}
+                                                className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl border border-slate-200/50 hover:border-amber-300/50 transition-all duration-300 p-6 cursor-pointer"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="p-3 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl group-hover:from-amber-100 group-hover:to-orange-100 transition-all duration-300">
+                                                            <UserGroupIcon className="h-6 w-6 text-slate-600 group-hover:text-amber-600 transition-colors duration-300" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xl font-bold text-slate-900">{emp.name}</p>
+                                                            <p className="text-sm text-slate-600">Role: {emp.role} • Salary: PKR {emp.salary.toLocaleString()}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center space-x-3">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                deleteEmployee(emp.id);
+                                                            }}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                                        >
+                                                            <TrashIcon className="h-5 w-5" />
+                                                        </button>
+                                                        <PlusIcon className="h-5 w-5 text-amber-600 group-hover:rotate-90 transition-transform duration-300" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {employees.length === 0 && !loading && (
+                                            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-12 text-center">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="p-4 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full mb-4">
+                                                        <UserGroupIcon className="h-12 w-12 text-slate-400" />
+                                                    </div>
+                                                    <h3 className="text-lg font-semibold text-slate-900 mb-2">No Employees Yet</h3>
+                                                    <p className="text-slate-600">Add your first employee to get started</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Tab.Panel>
+                            </Tab.Panels>
+                        </Tab.Group>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

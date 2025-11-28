@@ -11,6 +11,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-hot-toast';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import PasskeyModal from '@/components/ui/PasskeyModal';
 
 interface MilkRecord {
     date: string;
@@ -33,9 +34,7 @@ interface Customer {
 interface FarmDetails {
     farmName: string;
     city: string;
-    country: string;
     contact: string;
-    email?: string;
 }
 
 export default function UserRecordPage() {
@@ -44,7 +43,7 @@ export default function UserRecordPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const customerId = params.customerId as string;
-    
+
     // Check if we're in view mode (from monthly report)
     const isViewMode = searchParams.get('view') === 'true';
 
@@ -56,6 +55,10 @@ export default function UserRecordPage() {
     const [showDebitModal, setShowDebitModal] = useState(false);
     const [debitInput, setDebitInput] = useState('');
     const [farmDetails, setFarmDetails] = useState<FarmDetails | null>(null);
+
+    // Passkey Modal state
+    const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+    const [passkeyAction, setPasskeyAction] = useState<'setDebit' | 'clearDebit' | null>(null);
 
     useEffect(() => {
         if (!user || !customerId) return;
@@ -112,12 +115,12 @@ export default function UserRecordPage() {
     // Fetch farm details
     useEffect(() => {
         if (!user) return;
-        
+
         const fetchFarmDetails = async () => {
             try {
                 const docRef = doc(db, `users/${user.uid}/farm_details`, 'info');
                 const docSnap = await getDoc(docRef);
-                
+
                 if (docSnap.exists()) {
                     setFarmDetails(docSnap.data() as FarmDetails);
                 }
@@ -125,96 +128,97 @@ export default function UserRecordPage() {
                 console.error('Error fetching farm details:', error);
             }
         };
-        
+
         fetchFarmDetails();
     }, [user]);
 
-    const handleSetDebit = async () => {
+    const handleSetDebit = () => {
         if (!user || !customer) return;
-
-        const passkey = prompt('Enter passkey to set debit:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
-        }
-
-        try {
-            const debitValue = parseFloat(debitInput);
-            if (isNaN(debitValue) || debitValue < 0) {
-                toast.error('Please enter a valid debit amount');
-                return;
-            }
-
-            await setDoc(doc(db, `users/${user.uid}/user_data`, customerId), {
-                ...customer,
-                debitAmount: debitValue,
-            });
-
-            toast.success('Debit amount set successfully');
-            setShowDebitModal(false);
-            setDebitInput('');
-            window.location.reload();
-        } catch (error) {
-            toast.error('Failed to set debit');
-        }
+        setPasskeyAction('setDebit');
+        setIsPasskeyModalOpen(true);
     };
 
-    const handleClearDebit = async () => {
+    const handleClearDebit = () => {
+        if (!user || !customer) return;
+        setPasskeyAction('clearDebit');
+        setIsPasskeyModalOpen(true);
+    };
+
+    const handlePasskeySuccess = async () => {
         if (!user || !customer) return;
 
-        const passkey = prompt('Enter passkey to clear debit:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
+        if (passkeyAction === 'setDebit') {
+            try {
+                const debitValue = parseFloat(debitInput);
+                if (isNaN(debitValue) || debitValue < 0) {
+                    toast.error('Please enter a valid debit amount');
+                    return;
+                }
+
+                await setDoc(doc(db, `users/${user.uid}/user_data`, customerId), {
+                    ...customer,
+                    debitAmount: debitValue,
+                });
+
+                toast.success('Debit amount set successfully');
+                setShowDebitModal(false);
+                setDebitInput('');
+                window.location.reload();
+            } catch (error) {
+                toast.error('Failed to set debit');
+            }
+        } else if (passkeyAction === 'clearDebit') {
+            if (!confirm('Are you sure you want to clear the debit amount?')) return;
+
+            try {
+                await setDoc(doc(db, `users/${user.uid}/user_data`, customerId), {
+                    ...customer,
+                    debitAmount: 0,
+                });
+
+                toast.success('Debit cleared successfully');
+                window.location.reload();
+            } catch (error) {
+                toast.error('Failed to clear debit');
+            }
         }
 
-        if (!confirm('Are you sure you want to clear the debit amount?')) return;
-
-        try {
-            await setDoc(doc(db, `users/${user.uid}/user_data`, customerId), {
-                ...customer,
-                debitAmount: 0,
-            });
-
-            toast.success('Debit cleared successfully');
-            window.location.reload();
-        } catch (error) {
-            toast.error('Failed to clear debit');
-        }
+        setIsPasskeyModalOpen(false);
+        setPasskeyAction(null);
     };
 
     const exportPDF = () => {
         if (!customer) return;
 
         const pdfDoc = new jsPDF();
-        
+
         // Add farm details to PDF if available - Updated format
         if (farmDetails) {
             pdfDoc.setFontSize(16);
             pdfDoc.setFont('helvetica', 'bold'); // Make farm name bold
             pdfDoc.setTextColor(0, 0, 0); // Black color
             pdfDoc.text(farmDetails.farmName, 105, 15, { align: "center" });
-        
+
             pdfDoc.setFont('helvetica', 'normal'); // Reset to normal font
             pdfDoc.setFontSize(12);
             pdfDoc.text(`${farmDetails.city}`, 105, 22, { align: "center" }); // Removed comma
             pdfDoc.text(`Contact: ${farmDetails.contact}`, 105, 29, { align: "center" });
         }
-        
+
         // Add customer info and date range (date on left side)
         pdfDoc.setFontSize(12);
         pdfDoc.text(`Customer: ${customer.name} (ID: ${customer.customerId})`, 105, farmDetails ? 36 : 22, { align: "center" });
         pdfDoc.text(`Period: ${format(new Date(startDate), 'dd-MM-yyyy')} to ${format(new Date(endDate), 'dd-MM-yyyy')}`, farmDetails ? 20 : 20, farmDetails ? 43 : 29); // Date on left side
-        
+
         // Add separator lines
         const topY = farmDetails ? 47 : 33;
         pdfDoc.line(20, topY, 190, topY);
-        
+
         // Add title
         pdfDoc.setFontSize(14);
         pdfDoc.setTextColor(0, 0, 0); // Black color
         pdfDoc.text("CUSTOMER MILK RECORD", 105, topY + 8, { align: "center" });
-        
+
         pdfDoc.line(20, topY + 12, 190, topY + 12);
 
         const headers = [["Date", "Cow (M)", "Cow (E)", "Buffalo (M)", "Buffalo (E)", "Total"]];
@@ -278,7 +282,7 @@ export default function UserRecordPage() {
 
         // Create header rows
         const excelData = [];
-        
+
         // Add farm details if available - Updated format with better styling
         if (farmDetails) {
             excelData.push({ A: farmDetails.farmName, B: '', C: '', D: '', E: '', F: '', G: '' });
@@ -291,24 +295,24 @@ export default function UserRecordPage() {
             excelData.push({ A: `Customer: ${customer.name} (ID: ${customer.customerId})`, B: '', C: '', D: '', E: '', F: '', G: '' });
             excelData.push({ A: `Period: ${format(new Date(startDate), 'dd-MM-yyyy')} to ${format(new Date(endDate), 'dd-MM-yyyy')}`, B: '', C: '', D: '', E: '', F: '', G: '' });
         }
-        
+
         // Add separator line
         excelData.push({ A: '----------------------------------------------------------', B: '', C: '', D: '', E: '', F: '', G: '' });
-        
+
         // Add title
         excelData.push({ A: '', B: '', C: 'CUSTOMER MILK RECORD', D: '', E: '', F: '', G: '' });
-        
+
         // Add another separator line
         excelData.push({ A: '----------------------------------------------------------', B: '', C: '', D: '', E: '', F: '', G: '' });
-        
+
         // Add empty row
         excelData.push({ A: '', B: '', C: '', D: '', E: '', F: '', G: '' });
-        
+
         // Add table data
         excelData.push({ A: 'Date', B: 'Cow (M)', C: 'Cow (E)', D: 'Buffalo (M)', E: 'Buffalo (E)', F: 'Total', G: '' });
-        
+
         records.forEach(r => {
-            excelData.push({ 
+            excelData.push({
                 A: r.date,
                 B: r.cowMorning || '-',
                 C: r.cowEvening || '-',
@@ -343,9 +347,9 @@ export default function UserRecordPage() {
             excelData.push({ A: '', B: '', C: '', D: '', E: 'Debit Amount', F: `PKR ${debitAmount.toFixed(2)}`, G: '' });
             excelData.push({ A: '', B: '', C: '', D: '', E: 'Final Amount', F: `PKR ${finalAmount.toFixed(2)}`, G: '' });
         }
-        
+
         const ws = XLSX.utils.json_to_sheet(excelData, { skipHeader: true });
-        
+
         // Set column widths
         ws['!cols'] = [
             { wch: 15 }, // A column
@@ -356,10 +360,10 @@ export default function UserRecordPage() {
             { wch: 12 }, // F column
             { wch: 10 }  // G column
         ];
-        
+
         // Apply styling to headers and data
         const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-        
+
         // Style the farm details section (green background, bold, centered)
         for (let row = 0; row <= 3; row++) {
             for (let col = 0; col <= 6; col++) {
@@ -373,7 +377,7 @@ export default function UserRecordPage() {
                 };
             }
         }
-        
+
         // Style the title row
         const titleRow = 7;
         for (let col = 0; col <= 6; col++) {
@@ -386,7 +390,7 @@ export default function UserRecordPage() {
                 alignment: { horizontal: "center", vertical: "center" }
             };
         }
-        
+
         // Style the table headers (Date, Cow (M), etc.)
         const headerRow = 10;
         for (let col = 0; col <= 6; col++) {
@@ -399,7 +403,7 @@ export default function UserRecordPage() {
                 alignment: { horizontal: "center", vertical: "center" }
             };
         }
-        
+
         // Style the data rows (centered)
         for (let row = 11; row <= 11 + records.length + 6; row++) { // +6 for the summary rows
             for (let col = 0; col <= 6; col++) {
@@ -409,7 +413,7 @@ export default function UserRecordPage() {
                 ws[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
             }
         }
-        
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Milk Record");
         XLSX.writeFile(wb, `${customer.name}_milk_record.xlsx`);
@@ -430,16 +434,16 @@ export default function UserRecordPage() {
         <div className="max-w-6xl mx-auto">
             {/* Farm Details Header */}
             {farmDetails && (
-                <div className="bg-white rounded-lg shadow p-4 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-3 mb-4">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">{farmDetails.farmName}</h2>
-                            <p className="text-gray-600">{farmDetails.city}, {farmDetails.country} | {farmDetails.contact}</p>
+                            <h2 className="text-lg font-bold text-gray-900">{farmDetails.farmName}</h2>
+                            <p className="text-gray-600 text-sm">{farmDetails.city} | {farmDetails.contact}</p>
                         </div>
                     </div>
                 </div>
             )}
-            
+
             <button
                 onClick={() => router.back()}
                 className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
@@ -625,6 +629,17 @@ export default function UserRecordPage() {
                     </div>
                 </div>
             )}
+
+            <PasskeyModal
+                isOpen={isPasskeyModalOpen}
+                onClose={() => {
+                    setIsPasskeyModalOpen(false);
+                    setPasskeyAction(null);
+                }}
+                onSuccess={handlePasskeySuccess}
+                title={passkeyAction === 'setDebit' ? 'Confirm Debit' : 'Confirm Clear Debit'}
+                description="Please enter your MPIN to continue."
+            />
         </div>
     );
 }

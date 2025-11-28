@@ -14,11 +14,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
             console.log('AuthProvider: Firebase auth state changed:', firebaseUser);
-            
+
             // Check if user is authenticated via MPIN
             const isMpinAuthenticated = sessionStorage.getItem('mpin_authenticated') === 'true';
             console.log('AuthProvider: MPIN authenticated:', isMpinAuthenticated);
-            
+
             // If no Firebase user but MPIN authenticated, use stored user data
             if (!firebaseUser && isMpinAuthenticated) {
                 try {
@@ -27,7 +27,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     if (storedUserData) {
                         const userData = JSON.parse(storedUserData);
                         console.log('AuthProvider: Using stored user data for MPIN auth:', userData);
-                        
+
                         // Enhance user data to match Firebase user structure for consistent permissions
                         const enhancedUserData = {
                             ...userData,
@@ -37,7 +37,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                             email: userData.email || '',
                             displayName: userData.displayName || userData.name || userData.email || '',
                         };
-                        
+
                         setUser(enhancedUserData);
                     }
                 } catch (error) {
@@ -45,11 +45,37 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     sessionStorage.removeItem('mpin_authenticated');
                     sessionStorage.removeItem('user_data');
                 }
-            } else {
+            } else if (firebaseUser) {
                 console.log('AuthProvider: Setting Firebase user:', firebaseUser);
-                setUser(firebaseUser as any);
+
+                // Fetch MPIN for the user
+                const fetchMpin = async () => {
+                    try {
+                        const { doc, getDoc } = await import('firebase/firestore');
+                        const { db } = await import('@/lib/firebase');
+                        const mpinDocRef = doc(db, 'mpin_records', firebaseUser.uid);
+                        const mpinDocSnap = await getDoc(mpinDocRef);
+
+                        let userMpin = null;
+                        if (mpinDocSnap.exists()) {
+                            userMpin = mpinDocSnap.data().mpin;
+                            console.log('AuthProvider: Fetched user MPIN');
+                        }
+
+                        setUser({
+                            ...firebaseUser,
+                            mpin: userMpin
+                        } as any);
+                    } catch (error) {
+                        console.error('AuthProvider: Error fetching MPIN:', error);
+                        setUser(firebaseUser as any);
+                    }
+                };
+                fetchMpin();
+            } else {
+                setUser(null);
             }
-            
+
             setLoading(false);
 
             // Handle routing based on auth state

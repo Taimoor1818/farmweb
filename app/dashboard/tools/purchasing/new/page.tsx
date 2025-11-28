@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import PasskeyModal from '@/components/ui/PasskeyModal';
 
 interface POItem {
     id: number;
@@ -22,6 +23,9 @@ export default function NewPOPage() {
     const [vendor, setVendor] = useState('');
     const [items, setItems] = useState<POItem[]>([{ id: 1, name: '', qty: 1, unit: 'kg', price: 0 }]);
     const [loading, setLoading] = useState(false);
+
+    // Passkey Modal state
+    const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
 
     const addItem = () => {
         setItems([...items, { id: Date.now(), name: '', qty: 1, unit: 'kg', price: 0 }]);
@@ -39,17 +43,15 @@ export default function NewPOPage() {
         return items.reduce((sum, item) => sum + (item.qty * item.price), 0);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
-        
-        // Ask for passkey before creating PO
-        const passkey = prompt('Enter passkey to create PO:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
-        }
-        
+        setIsPasskeyModalOpen(true);
+    };
+
+    const handlePasskeySuccess = async () => {
+        if (!user) return;
+
         setLoading(true);
 
         try {
@@ -73,6 +75,7 @@ export default function NewPOPage() {
             toast.error('Failed to create PO');
         } finally {
             setLoading(false);
+            setIsPasskeyModalOpen(false);
         }
     };
 
@@ -162,6 +165,14 @@ export default function NewPOPage() {
                     </button>
                 </div>
             </form>
+
+            <PasskeyModal
+                isOpen={isPasskeyModalOpen}
+                onClose={() => setIsPasskeyModalOpen(false)}
+                onSuccess={handlePasskeySuccess}
+                title="Confirm Creation"
+                description="Please enter your MPIN to create this Purchase Order."
+            />
         </div>
     );
 }

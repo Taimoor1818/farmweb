@@ -6,6 +6,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import Sidebar from '@/components/layout/Sidebar';
 
 import AuthGuard from '@/components/auth/AuthGuard';
+import SubscriptionGuard from '@/components/auth/SubscriptionGuard';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -88,7 +89,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
                         <div className="py-6">
                             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                            <SubscriptionGuard>
                                 {children}
+                            </SubscriptionGuard>
                             </div>
                         </div>
                     </main>

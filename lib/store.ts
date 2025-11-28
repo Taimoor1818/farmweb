@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 
 // Define a more flexible user type that can accommodate both Firebase users and MPIN users

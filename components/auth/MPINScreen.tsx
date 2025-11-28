@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'react-hot-toast';
@@ -19,14 +21,21 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { user } = useAuthStore();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Focus first input on mount
     useEffect(() => {
-        const firstInput = document.getElementById('mpin-0');
-        if (firstInput) {
-            firstInput.focus();
+        if (mounted) {
+            const firstInput = document.getElementById('mpin-0');
+            if (firstInput) {
+                firstInput.focus();
+            }
         }
-    }, []);
+    }, [mounted]);
 
     // Auto-verify MPIN when all 4 digits are entered in login mode
     useEffect(() => {
@@ -152,13 +161,13 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
             // Normalize the email for comparison
             const normalizedEmail = email.toLowerCase().trim();
             console.log('MPINScreen: Normalized email:', normalizedEmail);
-            
+
             // First find user by email to get UID
             const { collection, query, where, getDocs } = await import('firebase/firestore');
             const usersCollection = collection(db, 'users');
             const q = query(usersCollection, where('email', '==', normalizedEmail));
             const querySnapshot = await getDocs(q);
-            
+
             if (querySnapshot.empty) {
                 console.log('MPINScreen: No user found with email:', normalizedEmail);
                 setError('No user found with this email');
@@ -169,11 +178,11 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
             const userDoc = querySnapshot.docs[0];
             const userUid = userDoc.id;
             console.log('MPINScreen: User found with UID:', userUid);
-            
+
             // Now check MPIN with UID as document ID (consistent with storage)
             const mpinDocRef = doc(db, 'mpin_records', userUid);
             const mpinDocSnap = await getDoc(mpinDocRef);
-            
+
             if (!mpinDocSnap.exists()) {
                 console.log('MPINScreen: No MPIN record found for user UID:', userUid);
                 setError('No MPIN set for this user');
@@ -210,7 +219,9 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
         }
     };
 
-    return (
+    if (!mounted) return null;
+
+    return createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="p-6">
@@ -248,7 +259,7 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
                                         <input
                                             key={index}
                                             id={`mpin-${index}`}
-                                            type="text"
+                                            type="password"
                                             inputMode="numeric"
                                             maxLength={1}
                                             value={digit}
@@ -269,7 +280,7 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
                                         <input
                                             key={index}
                                             id={`confirm-mpin-${index}`}
-                                            type="text"
+                                            type="password"
                                             inputMode="numeric"
                                             maxLength={1}
                                             value={digit}
@@ -295,7 +306,7 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
                                         <input
                                             key={index}
                                             id={`mpin-${index}`}
-                                            type="text"
+                                            type="password"
                                             inputMode="numeric"
                                             maxLength={1}
                                             value={digit}
@@ -333,6 +344,7 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

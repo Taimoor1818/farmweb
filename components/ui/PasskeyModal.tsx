@@ -14,6 +14,8 @@ interface PasskeyModalProps {
     description?: string;
 }
 
+import { useAuthStore } from '@/lib/store';
+
 export default function PasskeyModal({
     isOpen,
     onClose,
@@ -23,6 +25,7 @@ export default function PasskeyModal({
 }: PasskeyModalProps) {
     const [passkey, setPasskey] = useState(['', '', '', '']);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const { user } = useAuthStore();
 
     useEffect(() => {
         if (isOpen) {
@@ -50,7 +53,10 @@ export default function PasskeyModal({
         if (index === 3 && value) {
             const code = newPasskey.join('');
             // Check immediately for better UX
-            if (code === '0000') {
+            // Use user's MPIN if available, otherwise fallback to '0000' (or handle as error)
+            const correctPasskey = user?.mpin || '0000';
+
+            if (code === correctPasskey) {
                 onSuccess();
                 onClose();
             } else {

@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { DocumentTextIcon, DocumentArrowDownIcon, CalendarIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
 
 interface Note {
     id: string;
@@ -93,88 +94,174 @@ export default function NotesPage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Notes</h1>
-                <button
-                    onClick={exportPDF}
-                    disabled={notesList.length === 0}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50"
-                >
-                    Export PDF
-                </button>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/30">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Header Section */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg">
+                                <DocumentTextIcon className="h-8 w-8 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                    Notes & Reminders
+                                </h1>
+                                <p className="text-slate-600 mt-1">Keep track of important information and tasks</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={exportPDF}
+                            disabled={notesList.length === 0}
+                            className="group flex items-center px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                            <DocumentArrowDownIcon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                            Export PDF
+                        </button>
+                    </div>
+                </div>
 
-            <div className="bg-white p-6 rounded-lg shadow mb-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Stats Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-slate-200/50">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-slate-600">Total Notes</p>
+                                <p className="text-3xl font-bold text-slate-900 mt-1">{notesList.length}</p>
+                            </div>
+                            <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
+                                <DocumentTextIcon className="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-slate-200/50">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-slate-600">This Month</p>
+                                <p className="text-3xl font-bold text-purple-600 mt-1">
+                                    {notesList.filter(n => {
+                                        const noteDate = new Date(n.date);
+                                        const now = new Date();
+                                        return noteDate.getMonth() === now.getMonth() && noteDate.getFullYear() === now.getFullYear();
+                                    }).length}
+                                </p>
+                            </div>
+                            <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl">
+                                <CalendarIcon className="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Add Note Form */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-6 mb-8">
+                    <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center">
+                        <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mr-3">
+                            <ChatBubbleBottomCenterTextIcon className="h-5 w-5 text-purple-600" />
+                        </div>
+                        Create New Note
+                    </h2>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200 outline-none"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Topic</label>
+                                <input
+                                    type="text"
+                                    value={topic}
+                                    onChange={(e) => setTopic(e.target.value)}
+                                    placeholder="e.g., Vaccination Schedule"
+                                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200 outline-none"
+                                    required
+                                />
+                            </div>
+                        </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Date</label>
-                            <input
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Write your note details here..."
+                                className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200 outline-none resize-none"
+                                rows={4}
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Topic</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Remarks (Optional)</label>
                             <input
                                 type="text"
-                                value={topic}
-                                onChange={(e) => setTopic(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                                required
+                                value={remarks}
+                                onChange={(e) => setRemarks(e.target.value)}
+                                placeholder="Additional comments or reminders"
+                                className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200 outline-none"
                             />
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Description</label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                            rows={3}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Remarks</label>
-                        <input
-                            type="text"
-                            value={remarks}
-                            onChange={(e) => setRemarks(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                    >
-                        Add Note
-                    </button>
-                </form>
-            </div>
+                        <button
+                            type="submit"
+                            className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-medium"
+                        >
+                            Add Note
+                        </button>
+                    </form>
+                </div>
 
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
+                {/* Notes List */}
+                <div className="space-y-4">
                     {notesList.map((note) => (
-                        <li key={note.id} className="px-6 py-4 hover:bg-gray-50">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-lg font-semibold text-gray-900">{note.topic}</p>
-                                    <p className="text-sm text-gray-500 mb-2">{note.date}</p>
-                                    <p className="text-gray-700 whitespace-pre-wrap">{note.description}</p>
-                                    {note.remarks && <p className="text-sm text-gray-500 mt-2 italic">Remarks: {note.remarks}</p>}
+                        <div
+                            key={note.id}
+                            className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl border border-slate-200/50 hover:border-purple-300/50 transition-all duration-300 overflow-hidden"
+                        >
+                            <div className="p-6">
+                                <div className="flex items-start space-x-4">
+                                    <div className="p-3 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl group-hover:from-purple-100 group-hover:to-pink-100 transition-all duration-300 flex-shrink-0">
+                                        <ChatBubbleBottomCenterTextIcon className="h-6 w-6 text-slate-600 group-hover:text-purple-600 transition-colors duration-300" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <h3 className="text-xl font-bold text-slate-900">{note.topic}</h3>
+                                            <span className="flex items-center text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full flex-shrink-0 ml-4">
+                                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                                {note.date}
+                                            </span>
+                                        </div>
+                                        <div className="bg-gradient-to-br from-slate-50 to-purple-50/30 rounded-xl p-4 mb-3 border border-slate-200/50">
+                                            <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{note.description}</p>
+                                        </div>
+                                        {note.remarks && (
+                                            <div className="flex items-start space-x-2 bg-purple-50 rounded-lg p-3 border border-purple-200/50">
+                                                <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide flex-shrink-0">Remarks:</span>
+                                                <p className="text-sm text-purple-900 italic">{note.remarks}</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </li>
+                        </div>
                     ))}
+
                     {notesList.length === 0 && !loading && (
-                        <li className="px-6 py-10 text-center text-gray-500">No notes found.</li>
+                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-12 text-center">
+                            <div className="flex flex-col items-center">
+                                <div className="p-4 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full mb-4">
+                                    <DocumentTextIcon className="h-12 w-12 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-slate-900 mb-2">No Notes Yet</h3>
+                                <p className="text-slate-600">Start documenting important information by creating your first note above</p>
+                            </div>
+                        </div>
                     )}
-                </ul>
+                </div>
             </div>
         </div>
     );

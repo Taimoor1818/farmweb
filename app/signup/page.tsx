@@ -28,6 +28,9 @@ export default function SignupPage() {
                 email: email.toLowerCase().trim(),
                 uid: user.uid,  // Store UID for quick access
                 createdAt: new Date(),
+                trialStartedAt: new Date(),
+                isPaid: false,
+                subscriptionStatus: 'trial',
             });
 
             toast.success('Account created successfully! Please login.');

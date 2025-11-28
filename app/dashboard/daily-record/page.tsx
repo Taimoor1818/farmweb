@@ -12,6 +12,7 @@ import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import { PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import PasskeyModal from '@/components/ui/PasskeyModal';
 
 interface DailyData {
     cow_morning: Record<string, string>;
@@ -56,9 +57,7 @@ interface ExpenseEntry {
 interface FarmDetails {
     farmName: string;
     city: string;
-    country: string;
     contact: string;
-    email?: string;
 }
 
 export default function DailyRecordPage() {
@@ -77,6 +76,11 @@ export default function DailyRecordPage() {
     const [expenseEntries, setExpenseEntries] = useState<ExpenseEntry[]>([]);
     const [editingEntry, setEditingEntry] = useState<any>(null);
     const [editAmount, setEditAmount] = useState('');
+
+    // Passkey Modal state
+    const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+    const [passkeyAction, setPasskeyAction] = useState<'edit' | 'delete' | null>(null);
+    const [passkeyContext, setPasskeyContext] = useState<any>(null);
 
     // Fetch customers for name lookup
     useEffect(() => {
@@ -200,13 +204,9 @@ export default function DailyRecordPage() {
     };
 
     const handleEdit = (entry: any) => {
-        const passkey = prompt('Enter passkey to edit:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
-        }
-        setEditingEntry(entry);
-        setEditAmount(entry.amount.toString());
+        setPasskeyAction('edit');
+        setPasskeyContext(entry);
+        setIsPasskeyModalOpen(true);
     };
 
     const handleSaveEdit = async () => {
@@ -226,23 +226,33 @@ export default function DailyRecordPage() {
         }
     };
 
-    const handleDelete = async (entry: any) => {
-        const passkey = prompt('Enter passkey to delete:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
+    const handleDelete = (entry: any) => {
+        setPasskeyAction('delete');
+        setPasskeyContext(entry);
+        setIsPasskeyModalOpen(true);
+    };
+
+    const handlePasskeySuccess = async () => {
+        if (!user || !passkeyContext) return;
+
+        if (passkeyAction === 'edit') {
+            setEditingEntry(passkeyContext);
+            setEditAmount(passkeyContext.amount.toString());
+        } else if (passkeyAction === 'delete') {
+            if (!confirm('Are you sure you want to delete this entry?')) return;
+
+            try {
+                const collection_name = modalType === 'expense' ? 'expenses' : 'cash_entries';
+                await deleteDoc(doc(db, `users/${user.uid}/${collection_name}`, passkeyContext.id));
+                toast.success('Deleted successfully');
+                window.location.reload();
+            } catch (error) {
+                toast.error('Failed to delete');
+            }
         }
 
-        if (!user || !confirm('Are you sure you want to delete this entry?')) return;
-
-        try {
-            const collection_name = modalType === 'expense' ? 'expenses' : 'cash_entries';
-            await deleteDoc(doc(db, `users/${user.uid}/${collection_name}`, entry.id));
-            toast.success('Deleted successfully');
-            window.location.reload();
-        } catch (error) {
-            toast.error('Failed to delete');
-        }
+        setPasskeyAction(null);
+        setPasskeyContext(null);
     };
 
     const generatePDF = () => {
@@ -608,11 +618,11 @@ export default function DailyRecordPage() {
         <div className="max-w-6xl mx-auto">
             {/* Farm Details Header */}
             {farmDetails && (
-                <div className="bg-white rounded-lg shadow p-4 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-3 mb-4">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">{farmDetails.farmName}</h2>
-                            <p className="text-gray-600">{farmDetails.city}, {farmDetails.country} | {farmDetails.contact}</p>
+                            <h2 className="text-lg font-bold text-gray-900">{farmDetails.farmName}</h2>
+                            <p className="text-gray-600 text-sm">{farmDetails.city} | {farmDetails.contact}</p>
                         </div>
                     </div>
                 </div>
@@ -683,7 +693,7 @@ export default function DailyRecordPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Cow Milk Card - Elegant Design */}
                                 <div className="relative overflow-hidden rounded-2xl shadow-lg bg-gradient-to-br from-blue-100 via-white to-blue-200 p-6 border border-blue-200">
-                                    <div className="absolute top-4 right-4 opacity-20 text-blue-400" style={{fontSize: '3rem'}}>
+                                    <div className="absolute top-4 right-4 opacity-20 text-blue-400" style={{ fontSize: '3rem' }}>
                                         🐄
                                     </div>
                                     <h3 className="text-lg font-bold text-blue-900 mb-2 flex items-center gap-2">
@@ -707,7 +717,7 @@ export default function DailyRecordPage() {
 
                                 {/* Buffalo Milk Card - Elegant Design */}
                                 <div className="relative overflow-hidden rounded-2xl shadow-lg bg-gradient-to-br from-green-100 via-white to-green-200 p-6 border border-green-200">
-                                    <div className="absolute top-4 right-4 opacity-20 text-green-400" style={{fontSize: '3rem'}}>
+                                    <div className="absolute top-4 right-4 opacity-20 text-green-400" style={{ fontSize: '3rem' }}>
                                         🐃
                                     </div>
                                     <h3 className="text-lg font-bold text-green-900 mb-2 flex items-center gap-2">
@@ -892,6 +902,18 @@ export default function DailyRecordPage() {
                     </div>
                 </div>
             )}
+
+            <PasskeyModal
+                isOpen={isPasskeyModalOpen}
+                onClose={() => {
+                    setIsPasskeyModalOpen(false);
+                    setPasskeyAction(null);
+                    setPasskeyContext(null);
+                }}
+                onSuccess={handlePasskeySuccess}
+                title={passkeyAction === 'delete' ? 'Confirm Deletion' : 'Confirm Edit'}
+                description="Please enter your MPIN to continue."
+            />
         </div>
     );
 }

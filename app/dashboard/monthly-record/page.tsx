@@ -62,9 +62,7 @@ interface ExpenseEntry {
 interface FarmDetails {
     farmName: string;
     city: string;
-    country: string;
     contact: string;
-    email?: string;
 }
 
 export default function MonthlyRecordPage() {
@@ -738,7 +736,7 @@ export default function MonthlyRecordPage() {
                 
                 pdfDoc.setFontSize(12);
                 pdfDoc.setTextColor(0, 0, 0);
-                pdfDoc.text(`${farmDetails.city}, ${farmDetails.country}`, 105, 22, { align: "center" });
+                pdfDoc.text(`${farmDetails.city}`, 105, 22, { align: "center" });
                 pdfDoc.text(`Contact: ${farmDetails.contact}`, 105, 29, { align: "center" });
             }
             
@@ -815,11 +813,11 @@ export default function MonthlyRecordPage() {
         <div className="max-w-6xl mx-auto">
             {/* Farm Details Header */}
             {farmDetails && (
-                <div className="bg-white rounded-lg shadow p-4 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-3 mb-4">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">{farmDetails.farmName}</h2>
-                            <p className="text-gray-600">{farmDetails.city}, {farmDetails.country} | {farmDetails.contact}</p>
+                            <h2 className="text-lg font-bold text-gray-900">{farmDetails.farmName}</h2>
+                            <p className="text-gray-600 text-sm">{farmDetails.city} | {farmDetails.contact}</p>
                         </div>
                     </div>
                 </div>

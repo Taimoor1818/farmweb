@@ -38,6 +38,25 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Payment requests access control
+    match /payment_requests/{requestId} {
+      // Allow creation of payment requests by authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow users to read their own payment requests
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Allow users to update their own payment requests (for resubmission)
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Deny delete operations for regular users
+      allow delete: if false;
+      
+      // Allow admin users to read, update, and delete payment requests
+      allow read, update, delete: if request.auth != null && 
+        request.auth.token.email == 'taimoorshah1818@gmail.com';
+    }
+
     // Fallback: deny all other access
     match /{document=**} {
       allow read, write: if false;

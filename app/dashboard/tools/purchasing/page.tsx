@@ -5,10 +5,11 @@ import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase
 import { db } from '@/lib/firebase';
 import { useAuthStore } from '@/lib/store';
 import Link from 'next/link';
-import { PlusIcon, DocumentTextIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, DocumentTextIcon, PencilIcon, TrashIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import PasskeyModal from '@/components/ui/PasskeyModal';
 
 interface PO {
     id: string;
@@ -25,6 +26,11 @@ export default function PurchasingPage() {
     const [pos, setPos] = useState<PO[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Passkey Modal state
+    const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+    const [passkeyAction, setPasskeyAction] = useState<'edit' | 'delete' | null>(null);
+    const [passkeyContext, setPasskeyContext] = useState<any>(null);
+
     useEffect(() => {
         if (!user) return;
         const q = query(collection(db, `users/${user.uid}/purchaseOrders`), orderBy('createdAt', 'desc'));
@@ -40,100 +46,203 @@ export default function PurchasingPage() {
     }, [user]);
 
     const handleEdit = (poId: string) => {
-        // Ask for passkey before allowing edit
-        const passkey = prompt('Enter passkey to edit PO:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
-        }
-        
-        // Navigate to edit page (we'll use the same page as view for now, but with edit mode)
-        router.push(`/dashboard/tools/purchasing/${poId}`);
+        setPasskeyAction('edit');
+        setPasskeyContext(poId);
+        setIsPasskeyModalOpen(true);
     };
 
-    const handleDelete = async (poId: string, poNumber: string) => {
-        // Ask for passkey before allowing delete
-        const passkey = prompt('Enter passkey to delete PO:');
-        if (passkey !== '0000') {
-            toast.error('Incorrect passkey');
-            return;
-        }
-    
-        if (!user || !confirm('Are you sure you want to delete this PO?')) return;
+    const handleDelete = (poId: string, poNumber: string) => {
+        setPasskeyAction('delete');
+        setPasskeyContext({ id: poId, poNumber });
+        setIsPasskeyModalOpen(true);
+    };
 
-        try {
-            // Delete only from the auto-generated ID location
-            await deleteDoc(doc(db, `users/${user.uid}/purchaseOrders`, poId));
-        
-            toast.success('PO deleted successfully');
-        } catch (error) {
-            console.error(error);
-            toast.error('Failed to delete PO');
+    const handlePasskeySuccess = async () => {
+        if (!user || !passkeyContext) return;
+
+        if (passkeyAction === 'edit') {
+            const poId = passkeyContext as string;
+            router.push(`/dashboard/tools/purchasing/${poId}`);
+        } else if (passkeyAction === 'delete') {
+            const { id } = passkeyContext;
+            if (!confirm('Are you sure you want to delete this PO?')) return;
+
+            try {
+                await deleteDoc(doc(db, `users/${user.uid}/purchaseOrders`, id));
+                toast.success('PO deleted successfully');
+            } catch (error) {
+                console.error(error);
+                toast.error('Failed to delete PO');
+            }
         }
+
+        setIsPasskeyModalOpen(false);
+        setPasskeyAction(null);
+        setPasskeyContext(null);
     };
 
     return (
-        <div className="max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Purchasing (PO)</h1>
-                <Link
-                    href="/dashboard/tools/purchasing/new"
-                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                >
-                    <PlusIcon className="h-5 w-5 mr-2" />
-                    New PO
-                </Link>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/30">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Header Section */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg">
+                                <ShoppingCartIcon className="h-8 w-8 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                                    Purchase Orders
+                                </h1>
+                                <p className="text-slate-600 mt-1">Manage your procurement and vendor orders</p>
+                            </div>
+                        </div>
+                        <Link
+                            href="/dashboard/tools/purchasing/new"
+                            className="group flex items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                        >
+                            <PlusIcon className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+                            New Purchase Order
+                        </Link>
+                    </div>
+                </div>
 
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
+                {/* Stats Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-slate-200/50">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-slate-600">Total Orders</p>
+                                <p className="text-3xl font-bold text-slate-900 mt-1">{pos.length}</p>
+                            </div>
+                            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+                                <DocumentTextIcon className="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-slate-200/50">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-slate-600">Pending</p>
+                                <p className="text-3xl font-bold text-amber-600 mt-1">
+                                    {pos.filter(p => p.status === 'Pending').length}
+                                </p>
+                            </div>
+                            <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl">
+                                <DocumentTextIcon className="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-slate-200/50">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-slate-600">Received</p>
+                                <p className="text-3xl font-bold text-emerald-600 mt-1">
+                                    {pos.filter(p => p.status === 'Received').length}
+                                </p>
+                            </div>
+                            <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
+                                <DocumentTextIcon className="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Purchase Orders List */}
+                <div className="space-y-4">
                     {pos.map((po) => (
-                        <li key={po.id} className="hover:bg-gray-50">
-                            <div className="block px-6 py-4">
+                        <div
+                            key={po.id}
+                            className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl border border-slate-200/50 hover:border-emerald-300/50 transition-all duration-300 overflow-hidden"
+                        >
+                            <div className="p-6">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <DocumentTextIcon className="h-6 w-6 text-gray-400 mr-3" />
-                                        <div>
-                                            <p className="text-sm font-medium text-green-600">PO #{po.poNumber}</p>
-                                            <Link href={`/dashboard/tools/purchasing/${po.id}`} className="text-lg font-semibold text-gray-900 hover:text-green-600">
+                                    <div className="flex items-center space-x-4 flex-1">
+                                        <div className="p-3 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl group-hover:from-emerald-100 group-hover:to-teal-100 transition-all duration-300">
+                                            <DocumentTextIcon className="h-6 w-6 text-slate-600 group-hover:text-emerald-600 transition-colors duration-300" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center space-x-3 mb-1">
+                                                <span className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-semibold rounded-full">
+                                                    PO #{po.poNumber}
+                                                </span>
+                                                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${po.status === 'Received'
+                                                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white'
+                                                        : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white'
+                                                    }`}>
+                                                    {po.status}
+                                                </span>
+                                            </div>
+                                            <Link
+                                                href={`/dashboard/tools/purchasing/${po.id}`}
+                                                className="text-xl font-bold text-slate-900 hover:text-emerald-600 transition-colors duration-200"
+                                            >
                                                 {po.vendor}
                                             </Link>
+                                            <div className="flex items-center space-x-4 mt-2 text-sm text-slate-600">
+                                                <span className="flex items-center">
+                                                    <span className="font-semibold text-emerald-600">PKR {po.totalAmount.toLocaleString()}</span>
+                                                </span>
+                                                <span className="text-slate-400">•</span>
+                                                <span>
+                                                    {po.createdAt?.seconds ? format(new Date(po.createdAt.seconds * 1000), 'PPP') : ''}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center">
-                                        <div className="mr-6 text-right">
-                                            <p className="text-sm font-medium text-gray-900">PKR {po.totalAmount}</p>
-                                            <p className="text-sm text-gray-500">
-                                                {po.createdAt?.seconds ? format(new Date(po.createdAt.seconds * 1000), 'PP') : ''}
-                                            </p>
-                                        </div>
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${po.status === 'Received' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                            }`}>
-                                            {po.status}
-                                        </span>
-                                        <div className="ml-4 flex space-x-2">
-                                            <button
-                                                onClick={() => handleEdit(po.id)}
-                                                className="text-indigo-600 hover:text-indigo-900"
-                                            >
-                                                <PencilIcon className="h-5 w-5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(po.id, po.poNumber)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                <TrashIcon className="h-5 w-5" />
-                                            </button>
-                                        </div>
+                                    <div className="flex items-center space-x-2 ml-4">
+                                        <button
+                                            onClick={() => handleEdit(po.id)}
+                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                            title="Edit PO"
+                                        >
+                                            <PencilIcon className="h-5 w-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(po.id, po.poNumber)}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                            title="Delete PO"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </li>
+                        </div>
                     ))}
+
                     {pos.length === 0 && !loading && (
-                        <li className="px-6 py-10 text-center text-gray-500">No Purchase Orders found.</li>
+                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-12 text-center">
+                            <div className="flex flex-col items-center">
+                                <div className="p-4 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full mb-4">
+                                    <ShoppingCartIcon className="h-12 w-12 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-slate-900 mb-2">No Purchase Orders Yet</h3>
+                                <p className="text-slate-600 mb-6">Get started by creating your first purchase order</p>
+                                <Link
+                                    href="/dashboard/tools/purchasing/new"
+                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                                >
+                                    <PlusIcon className="h-5 w-5 mr-2" />
+                                    Create Purchase Order
+                                </Link>
+                            </div>
+                        </div>
                     )}
-                </ul>
+                </div>
+
+                <PasskeyModal
+                    isOpen={isPasskeyModalOpen}
+                    onClose={() => {
+                        setIsPasskeyModalOpen(false);
+                        setPasskeyAction(null);
+                        setPasskeyContext(null);
+                    }}
+                    onSuccess={handlePasskeySuccess}
+                    title={passkeyAction === 'delete' ? 'Confirm Deletion' : 'Confirm Edit'}
+                    description="Please enter your MPIN to continue."
+                />
             </div>
         </div>
     );

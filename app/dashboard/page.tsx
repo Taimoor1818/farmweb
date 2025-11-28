@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'react-hot-toast';
@@ -22,9 +22,13 @@ import {
 interface FarmDetails {
     farmName: string;
     city: string;
-    country: string;
     contact: string;
-    email?: string;
+}
+
+interface UserSubscriptionData {
+    isPaid: boolean;
+    subscriptionStatus: string;
+    email: string;
 }
 
 const quickActions = [
@@ -46,9 +50,9 @@ export default function DashboardPage() {
     const [formData, setFormData] = useState<FarmDetails>({
         farmName: '',
         city: '',
-        country: '',
         contact: ''
     });
+    const [subscriptionData, setSubscriptionData] = useState<UserSubscriptionData | null>(null);
 
     // Fetch farm details
     useEffect(() => {
@@ -61,6 +65,21 @@ export default function DashboardPage() {
             setLoading(false);
             return;
         }
+
+        // Listen for real-time subscription data updates
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribeSubscription = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setSubscriptionData({
+                    isPaid: data.isPaid || false,
+                    subscriptionStatus: data.subscriptionStatus || 'unknown',
+                    email: data.email || user.email || ''
+                });
+            }
+        }, (error) => {
+            console.error('Dashboard: Error fetching subscription data:', error);
+        });
 
         const fetchFarmDetails = async () => {
             try {
@@ -91,6 +110,11 @@ export default function DashboardPage() {
         };
 
         fetchFarmDetails();
+
+        // Cleanup subscription listeners
+        return () => {
+            unsubscribeSubscription();
+        };
     }, [user]);
 
     const handleEdit = () => {
@@ -102,7 +126,6 @@ export default function DashboardPage() {
         setFormData(farmDetails || {
             farmName: '',
             city: '',
-            country: '',
             contact: ''
         });
         setIsEditing(false);
@@ -143,134 +166,135 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                    {subscriptionData && (
+                        <div className="mt-2 md:mt-0 flex items-center space-x-3">
+                            <div className="text-sm">
+                                <p className="text-gray-600 truncate max-w-xs">{subscriptionData.email}</p>
+                                <div className="flex items-center mt-1">
+                                    {subscriptionData.isPaid && subscriptionData.subscriptionStatus === 'active' ? (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <svg className="-ml-0.5 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                                                <circle cx={4} cy={4} r={3} />
+                                            </svg>
+                                            Activated
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <svg className="-ml-0.5 mr-1.5 h-2 w-2 text-yellow-400" fill="currentColor" viewBox="0 0 8 8">
+                                                <circle cx={4} cy={4} r={3} />
+                                            </svg>
+                                            Pending
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Farm Details Section */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 transition-all duration-300 hover:shadow-xl">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900">Farm Details</h2>
-                        <div className="flex space-x-2">
-                            {farmDetails && !isEditing && (
-                                <button
-                                    onClick={handleEdit}
-                                    className="flex items-center px-4 py-2 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-all duration-200 shadow-sm hover:shadow-md"
-                                >
-                                    <PencilIcon className="h-5 w-5 mr-2" />
-                                    Edit
-                                </button>
-                            )}
-                        </div>
+                <div className="bg-white rounded-xl shadow p-4 mb-6 transition-all duration-300 hover:shadow-md">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">Farm Details</h2>
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center items-center h-32">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500"></div>
+                        <div className="flex justify-center items-center h-20">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
                         </div>
                     ) : isEditing ? (
                         // Edit Form
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Farm Name</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Farm Name</label>
                                     <input
                                         type="text"
                                         value={formData.farmName}
                                         onChange={(e) => handleChange('farmName', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-3 border transition duration-200"
+                                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border transition duration-200 text-sm"
                                         placeholder="Enter farm name"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
                                     <input
                                         type="text"
                                         value={formData.city}
                                         onChange={(e) => handleChange('city', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-3 border transition duration-200"
+                                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border transition duration-200 text-sm"
                                         placeholder="Enter city"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                                    <input
-                                        type="text"
-                                        value={formData.country}
-                                        onChange={(e) => handleChange('country', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-3 border transition duration-200"
-                                        placeholder="Enter country"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact</label>
                                     <input
                                         type="text"
                                         value={formData.contact}
                                         onChange={(e) => handleChange('contact', e.target.value)}
-                                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-3 border transition duration-200"
+                                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border transition duration-200 text-sm"
                                         placeholder="Enter contact"
                                     />
                                 </div>
                             </div>
-                            <div className="flex space-x-4 pt-4">
+                            <div className="flex space-x-3 pt-2">
                                 <button
                                     onClick={handleSave}
-                                    className="flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                                    className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
                                 >
-                                    <CheckIcon className="h-5 w-5 mr-2" />
-                                    Save Changes
+                                    <CheckIcon className="h-4 w-4 mr-1" />
+                                    Save
                                 </button>
                                 <button
                                     onClick={handleCancel}
-                                    className="flex items-center px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 text-sm"
                                 >
-                                    <XMarkIcon className="h-5 w-5 mr-2" />
+                                    <XMarkIcon className="h-4 w-4 mr-1" />
                                     Cancel
                                 </button>
                             </div>
                         </div>
                     ) : farmDetails ? (
                         // Display Farm Details
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-5 rounded-2xl shadow-sm border border-green-100">
-                                    <p className="text-sm font-medium text-gray-500 mb-1">Farm Name</p>
-                                    <p className="text-xl font-semibold text-gray-900">{farmDetails.farmName}</p>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-3 rounded-lg shadow-sm border border-green-100">
+                                    <p className="text-xs font-medium text-gray-500 mb-0.5">Farm Name</p>
+                                    <p className="font-semibold text-gray-900 truncate">{farmDetails.farmName}</p>
                                 </div>
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-5 rounded-2xl shadow-sm border border-green-100">
-                                    <p className="text-sm font-medium text-gray-500 mb-1">City</p>
-                                    <p className="text-xl font-semibold text-gray-900">{farmDetails.city}</p>
+                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-3 rounded-lg shadow-sm border border-green-100">
+                                    <p className="text-xs font-medium text-gray-500 mb-0.5">City</p>
+                                    <p className="font-semibold text-gray-900 truncate">{farmDetails.city}</p>
                                 </div>
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-5 rounded-2xl shadow-sm border border-green-100">
-                                    <p className="text-sm font-medium text-gray-500 mb-1">Country</p>
-                                    <p className="text-xl font-semibold text-gray-900">{farmDetails.country}</p>
-                                </div>
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-5 rounded-2xl shadow-sm border border-green-100">
-                                    <p className="text-sm font-medium text-gray-500 mb-1">Contact</p>
-                                    <p className="text-xl font-semibold text-gray-900">{farmDetails.contact}</p>
+                                <div className="bg-gradient-to-br from-green-50 to-blue-50 p-3 rounded-lg shadow-sm border border-green-100">
+                                    <p className="text-xs font-medium text-gray-500 mb-0.5">Contact</p>
+                                    <p className="font-semibold text-gray-900 truncate">{farmDetails.contact}</p>
                                 </div>
                             </div>
-                            <div className="pt-4">
+                            <div className="pt-2">
                                 <button
                                     onClick={handleEdit}
-                                    className="flex items-center px-4 py-2 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="flex items-center px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-all duration-200 text-sm"
                                 >
-                                    <PencilIcon className="h-5 w-5 mr-2" />
-                                    Edit Farm Details
+                                    <PencilIcon className="h-4 w-4 mr-1" />
+                                    Edit Details
                                 </button>
                             </div>
                         </div>
                     ) : (
                         // Set Farm Details
-                        <div className="space-y-6 text-center py-8">
-                            <div className="mx-auto w-24 h-24 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="space-y-4 text-center py-6">
+                            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                 </svg>
                             </div>
-                            <p className="text-gray-600 text-lg">No farm details set yet. Please add your farm information.</p>
+                            <p className="text-gray-600 text-sm">No farm details set yet. Please add your farm information.</p>
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="mx-auto flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                                className="mx-auto flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
                             >
                                 Set Farm Details
                             </button>
@@ -280,18 +304,28 @@ export default function DashboardPage() {
 
                 {/* Quick Actions Grid */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
+                        {user?.email === 'taimoorshah1818@gmail.com' && (
+                            <Link 
+                                href="/admin/payments"
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                                Admin Panel
+                            </Link>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-3">
                         {quickActions.map((action) => (
                             <Link
                                 key={action.name}
                                 href={action.href}
-                                className="group flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-green-200 bg-gradient-to-br from-white to-gray-50 hover:from-white hover:to-green-50"
+                                className="group flex flex-col items-center justify-center p-3 rounded-xl shadow-sm hover:shadow transition-all duration-200 border border-gray-100 hover:border-green-200 bg-gradient-to-br from-white to-gray-50 hover:from-white hover:to-green-50"
                             >
-                                <div className={`${action.color} p-4 rounded-2xl mb-4 transition-all duration-200 group-hover:scale-110`}>
-                                    <action.icon className="h-8 w-8" aria-hidden="true" />
+                                <div className={`${action.color} p-2 rounded-xl mb-2 transition-all duration-200 group-hover:scale-105`}>
+                                    <action.icon className="h-6 w-6" aria-hidden="true" />
                                 </div>
-                                <span className="text-base font-medium text-gray-800 text-center group-hover:text-green-700 transition-colors duration-200">{action.name}</span>
+                                <span className="text-xs font-medium text-gray-800 text-center group-hover:text-green-700 transition-colors duration-200">{action.name}</span>
                             </Link>
                         ))}
                     </div>

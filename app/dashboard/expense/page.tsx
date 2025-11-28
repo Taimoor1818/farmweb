@@ -43,70 +43,91 @@ export default function ExpensePage() {
     };
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Expense Entry</h1>
-            <div className="bg-white p-6 rounded-lg shadow">
-                <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="max-w-5xl mx-auto space-y-8">
+            {/* Header Section */}
+            <div className="rounded-2xl bg-gradient-to-r from-blue-500 to-blue-700 p-8 text-white shadow-xl">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Date</label>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                            required
-                        />
+                        <h1 className="text-3xl font-bold capitalize tracking-tight">Expense Entry</h1>
+                        <p className="text-blue-50 mt-2 text-lg opacity-90">Manage daily farm expenses efficiently</p>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Category</label>
-                        <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                        >
-                            <option value="Feed">Feed</option>
-                            <option value="Medical">Medical</option>
-                            <option value="Maintenance">Maintenance</option>
-                            <option value="Salary">Salary</option>
-                            <option value="Misc">Misc</option>
-                        </select>
+                </div>
+            </div>
+
+            {/* Entry Form */}
+            <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                <form onSubmit={handleSubmit} className="space-y-4 max-w-xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Date</label>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="block w-full rounded-lg border-gray-200 bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border transition-all text-sm"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Category</label>
+                            <select
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                className="block w-full rounded-lg border-gray-200 bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border transition-all text-sm"
+                            >
+                                <option value="Feed">Feed</option>
+                                <option value="Medical">Medical</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Salary">Salary</option>
+                                <option value="Misc">Misc</option>
+                            </select>
+                        </div>
                     </div>
+
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Item Name</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Item Name</label>
                         <input
                             type="text"
                             value={item}
                             onChange={(e) => setItem(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                            className="block w-full rounded-lg border-gray-200 bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border transition-all text-sm"
+                            placeholder="Enter item name"
                             required
                         />
                     </div>
+
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Amount (PKR)</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Amount (PKR)</label>
                         <input
                             type="number"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                            className="block w-full rounded-lg border-gray-200 bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border transition-all text-sm"
+                            placeholder="0.00"
                             required
                         />
                     </div>
+
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Notes</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Notes</label>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
-                            rows={3}
+                            className="block w-full rounded-lg border-gray-200 bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border transition-all text-sm"
+                            rows={2}
+                            placeholder="Additional notes (optional)"
                         />
                     </div>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                    >
-                        {loading ? 'Adding Expense...' : 'Add Expense'}
-                    </button>
+
+                    <div className="pt-3">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full flex justify-center py-2 px-3 border border-transparent rounded-lg shadow-sm text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                        >
+                            {loading ? 'Adding Expense...' : 'Add Expense'}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

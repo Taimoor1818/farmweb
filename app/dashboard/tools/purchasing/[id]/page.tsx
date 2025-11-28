@@ -32,9 +32,7 @@ interface PO {
 interface FarmDetails {
     farmName: string;
     city: string;
-    country: string;
     contact: string;
-    email?: string;
 }
 
 export default function PODetailsPage() {
@@ -121,7 +119,7 @@ export default function PODetailsPage() {
         
             pdfDoc.setFontSize(12);
             pdfDoc.setTextColor(0, 0, 0);
-            pdfDoc.text(`${farmDetails.city}, ${farmDetails.country}`, 105, 22, { align: "center" });
+            pdfDoc.text(`${farmDetails.city}`, 105, 22, { align: "center" });
             pdfDoc.text(`Contact: ${farmDetails.contact}`, 105, 29, { align: "center" });
         }
         
