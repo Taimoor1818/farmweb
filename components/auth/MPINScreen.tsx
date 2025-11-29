@@ -97,6 +97,15 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
         }
     };
 
+    // Helper function to hash MPIN
+    const hashMPIN = async (pin: string): Promise<string> => {
+        const msgBuffer = new TextEncoder().encode(pin);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    };
+
     const handleSetMpin = async () => {
         if (!user) {
             setError('You must be logged in to set an MPIN');
@@ -120,10 +129,13 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
         setError('');
 
         try {
+            // Hash the MPIN before storing
+            const hashedMpin = await hashMPIN(mpinString);
+
             // Store MPIN in a global MPIN collection with user UID as key for consistency
             const mpinDocRef = doc(db, 'mpin_records', user.uid);
             await setDoc(mpinDocRef, {
-                mpin: mpinString,
+                mpin: hashedMpin, // Store hashed MPIN
                 email: user.email || email, // Store email with MPIN
                 uid: user.uid,
                 createdAt: new Date(),
@@ -148,7 +160,7 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
         }
 
         const mpinString = mpin.join('');
-        console.log('MPINScreen: MPIN entered:', mpinString);
+        console.log('MPINScreen: MPIN entered (masked):', '****');
         if (mpinString.length !== 4) {
             setError('MPIN must be 4 digits');
             return;
@@ -191,9 +203,12 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
             }
 
             const mpinData = mpinDocSnap.data();
-            console.log('MPINScreen: MPIN data found:', mpinData);
-            if (mpinData.mpin !== mpinString) {
-                console.log('MPINScreen: MPIN mismatch. Expected:', mpinData.mpin, 'Entered:', mpinString);
+
+            // Hash the entered MPIN to compare
+            const hashedInputMpin = await hashMPIN(mpinString);
+
+            if (mpinData.mpin !== hashedInputMpin) {
+                console.log('MPINScreen: MPIN mismatch');
                 setError('Incorrect MPIN');
                 setLoading(false);
                 return;

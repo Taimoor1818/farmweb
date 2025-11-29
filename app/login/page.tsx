@@ -22,6 +22,11 @@ export default function LoginPage() {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
+            // Save email to localStorage for future MPIN logins
+            if (user.email) {
+                localStorage.setItem('last_login_email', user.email);
+            }
+
             // Check if user exists in Firestore
             const userDocRef = doc(db, 'users', user.uid);
             const userDocSnap = await getDoc(userDocRef);
@@ -53,10 +58,18 @@ export default function LoginPage() {
     };
 
     const handleMpinLogin = () => {
-        const emailInput = window.prompt("Please enter your email for MPIN login:");
-        if (emailInput) {
-            setMpinEmail(emailInput.toLowerCase().trim());
+        // Check if we have a stored email from previous login
+        const storedEmail = localStorage.getItem('last_login_email');
+
+        if (storedEmail) {
+            setMpinEmail(storedEmail.toLowerCase().trim());
             setShowMpinModal(true);
+        } else {
+            const emailInput = window.prompt("Please enter your email for MPIN login:");
+            if (emailInput) {
+                setMpinEmail(emailInput.toLowerCase().trim());
+                setShowMpinModal(true);
+            }
         }
     };
 
