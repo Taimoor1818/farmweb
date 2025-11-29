@@ -142,6 +142,9 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
                 updatedAt: new Date()
             });
 
+            // Save UID to localStorage for seamless MPIN login
+            localStorage.setItem('mpin_user_uid', user.uid);
+
             toast.success('MPIN set successfully!');
             onSuccess();
         } catch (err) {

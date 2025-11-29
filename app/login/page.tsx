@@ -18,9 +18,11 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         setLoading(true);
         try {
+            console.log('Starting Google login...');
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
+            console.log('Google login successful, user:', user.email);
 
             // Save email to localStorage for future MPIN logins
             if (user.email) {
@@ -32,6 +34,7 @@ export default function LoginPage() {
             const userDocSnap = await getDoc(userDocRef);
 
             if (!userDocSnap.exists()) {
+                console.log('Creating new user document...');
                 // Create new user document
                 await setDoc(userDocRef, {
                     email: user.email?.toLowerCase().trim(),
@@ -45,9 +48,11 @@ export default function LoginPage() {
                 });
                 toast.success('Account created successfully!');
             } else {
+                console.log('User already exists, logging in...');
                 toast.success('Logged in successfully!');
             }
 
+            console.log('Navigating to dashboard...');
             router.push('/dashboard');
         } catch (error: any) {
             console.error('Google login error:', error);
@@ -57,14 +62,40 @@ export default function LoginPage() {
         }
     };
 
-    const handleMpinLogin = () => {
-        // Check if we have a stored email from previous login
-        const storedEmail = localStorage.getItem('last_login_email');
+    const handleMpinLogin = async () => {
+        // Check if we have a stored UID from previous MPIN setup
+        const storedUid = localStorage.getItem('mpin_user_uid');
 
-        if (storedEmail) {
-            setMpinEmail(storedEmail.toLowerCase().trim());
-            setShowMpinModal(true);
+        if (storedUid) {
+            // We have a UID, fetch the email from Firestore
+            try {
+                const userDocRef = doc(db, 'users', storedUid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    setMpinEmail(userData.email || '');
+                    setShowMpinModal(true);
+                } else {
+                    // UID not found, clear it and ask for email
+                    localStorage.removeItem('mpin_user_uid');
+                    const emailInput = window.prompt("Please enter your email for MPIN login:");
+                    if (emailInput) {
+                        setMpinEmail(emailInput.toLowerCase().trim());
+                        setShowMpinModal(true);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                // Fallback to email prompt
+                const emailInput = window.prompt("Please enter your email for MPIN login:");
+                if (emailInput) {
+                    setMpinEmail(emailInput.toLowerCase().trim());
+                    setShowMpinModal(true);
+                }
+            }
         } else {
+            // No stored UID, ask for email
             const emailInput = window.prompt("Please enter your email for MPIN login:");
             if (emailInput) {
                 setMpinEmail(emailInput.toLowerCase().trim());
