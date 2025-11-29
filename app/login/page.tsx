@@ -1,46 +1,63 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import Link from 'next/link';
 import MPINScreen from '@/components/auth/MPINScreen';
-import { ShieldCheckIcon, LockClosedIcon, ArrowRightIcon, UserIcon } from '@heroicons/react/24/outline';
+import { ShieldCheckIcon, LockClosedIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 export default function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showMpinModal, setShowMpinModal] = useState(false);
     const [mpinEmail, setMpinEmail] = useState('');
     const router = useRouter();
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleGoogleLogin = async () => {
         setLoading(true);
-
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            toast.success('Logged in successfully!');
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Check if user exists in Firestore
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (!userDocSnap.exists()) {
+                // Create new user document
+                await setDoc(userDocRef, {
+                    email: user.email?.toLowerCase().trim(),
+                    uid: user.uid,
+                    name: user.displayName,
+                    photoURL: user.photoURL,
+                    createdAt: new Date(),
+                    trialStartedAt: new Date(),
+                    isPaid: false,
+                    subscriptionStatus: 'trial',
+                });
+                toast.success('Account created successfully!');
+            } else {
+                toast.success('Logged in successfully!');
+            }
+
             router.push('/dashboard');
         } catch (error: any) {
-            console.error(error);
-            toast.error(error.message || 'Failed to login');
+            console.error('Google login error:', error);
+            toast.error(error.message || 'Failed to login with Google');
         } finally {
             setLoading(false);
         }
     };
 
     const handleMpinLogin = () => {
-        if (!email) {
-            toast.error('Please enter your email first');
-            return;
+        const emailInput = window.prompt("Please enter your email for MPIN login:");
+        if (emailInput) {
+            setMpinEmail(emailInput.toLowerCase().trim());
+            setShowMpinModal(true);
         }
-        // Normalize the email before passing to MPIN screen
-        setMpinEmail(email.toLowerCase().trim());
-        setShowMpinModal(true);
     };
 
     const handleMpinSuccess = async (userUid?: string) => {
@@ -189,62 +206,15 @@ export default function LoginPage() {
                                 <p className="text-gray-300">Sign in to access your dashboard</p>
                             </div>
 
-                            <form onSubmit={handleLogin} className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-200 mb-2">Email Address</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <UserIcon className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200 outline-none"
-                                            placeholder="you@example.com"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-200 mb-2">Password</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <LockClosedIcon className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200 outline-none"
-                                            placeholder="••••••••"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <input
-                                            id="remember-me"
-                                            type="checkbox"
-                                            className="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-500 rounded bg-white/10"
-                                        />
-                                        <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">Remember me</label>
-                                    </div>
-                                    <div className="text-sm">
-                                        <a href="#" className="font-medium text-green-400 hover:text-green-300 transition duration-150">Forgot password?</a>
-                                    </div>
-                                </div>
-
+                            <div className="space-y-6">
                                 <button
-                                    type="submit"
+                                    onClick={handleGoogleLogin}
                                     disabled={loading}
-                                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition duration-200 transform hover:scale-[1.02] group"
+                                    className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-base font-medium text-gray-900 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition duration-200 transform hover:scale-[1.02] group"
                                 >
                                     {loading ? (
                                         <>
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
@@ -252,7 +222,8 @@ export default function LoginPage() {
                                         </>
                                     ) : (
                                         <>
-                                            Sign In
+                                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-6 w-6 mr-3" />
+                                            Sign in with Google
                                             <ArrowRightIcon className="ml-2 h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
                                         </>
                                     )}
@@ -276,15 +247,6 @@ export default function LoginPage() {
                                     Login with MPIN
                                     <ArrowRightIcon className="ml-2 h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
                                 </button>
-                            </form>
-
-                            <div className="mt-8 text-center">
-                                <p className="text-sm text-gray-300">
-                                    Don't have an account?{' '}
-                                    <Link href="/signup" className="font-medium text-green-400 hover:text-green-300 transition duration-150">
-                                        Sign up for free
-                                    </Link>
-                                </p>
                             </div>
                         </div>
 
