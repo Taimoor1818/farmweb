@@ -71,25 +71,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
             setLoading(false);
             setInitialLoad(false);
-
-            // Handle routing based on auth state
-            if (!firebaseUser && !isMpinAuthenticated && pathname.startsWith('/dashboard')) {
-                router.push('/login');
-            } else if ((firebaseUser || isMpinAuthenticated) && pathname === '/login') {
-                router.push('/dashboard');
-            }
         });
 
         return () => unsubscribe();
-    }, [setUser, setLoading, router, pathname]);
-
-    // Additional effect to handle manual user state changes
-    useEffect(() => {
-        const isMpinAuthenticated = sessionStorage.getItem('mpin_authenticated') === 'true';
-        if ((user || isMpinAuthenticated) && pathname === '/login') {
-            router.push('/dashboard');
-        }
-    }, [user, pathname, router]);
+    }, [setUser, setLoading]);
 
     // Show loading state while determining auth status
     if (initialLoad && typeof window !== 'undefined') {

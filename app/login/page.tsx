@@ -49,11 +49,12 @@ export default function LoginPage() {
                 toast.success('Account created successfully!');
             } else {
                 console.log('User already exists, logging in...');
-                toast.success('Logged in successfully!');
+                // No toast for existing users to avoid duplicate messages
             }
 
             console.log('Navigating to dashboard...');
-            router.push('/dashboard');
+            // Small delay to ensure smooth transition
+            setTimeout(() => router.push('/dashboard'), 100);
         } catch (error: any) {
             console.error('Google login error:', error);
             toast.error(error.message || 'Failed to login with Google');
@@ -155,9 +156,9 @@ export default function LoginPage() {
                 console.log('Stored user data in sessionStorage:', sessionStorage.getItem('user_data'));
 
                 setShowMpinModal(false);
-                toast.success('Logged in with MPIN successfully!');
+                // Toast already shown by MPINScreen, no need for duplicate
                 console.log('Navigating to dashboard for user:', userUid);
-                router.push('/dashboard');
+                setTimeout(() => router.push('/dashboard'), 100);
             } else {
                 console.log('No user document found for UID:', userUid);
                 toast.error('User data not found');

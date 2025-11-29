@@ -17,8 +17,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             if (!user && !isMpinAuthenticated) {
                 router.push('/login');
             } else {
-                // Small delay to ensure smooth transition
-                setTimeout(() => setIsChecking(false), 100);
+                // Allow smooth transition without artificial delay
+                setIsChecking(false);
             }
         }
     }, [user, loading, router]);

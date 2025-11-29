@@ -37,11 +37,17 @@ export default function MPINScreen({ mode, email, onSuccess, onCancel }: MPINScr
         }
     }, [mounted]);
 
-    // Auto-verify MPIN when all 4 digits are entered in login mode
+    // Auto-verify MPIN when all 4 digits are entered in login mode (with debounce)
     useEffect(() => {
         if (mode === 'login' && mpin.every(digit => digit !== '') && !loading) {
-            console.log('MPINScreen: Auto-verifying MPIN');
-            handleVerifyMpin();
+            console.log('MPINScreen: Scheduling auto-verification');
+            // Add debounce to prevent verification while user is still typing
+            const timer = setTimeout(() => {
+                console.log('MPINScreen: Auto-verifying MPIN');
+                handleVerifyMpin();
+            }, 300);
+
+            return () => clearTimeout(timer);
         }
     }, [mpin, mode, loading]);
 
