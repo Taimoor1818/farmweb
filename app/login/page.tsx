@@ -108,10 +108,10 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="fixed inset-0 overflow-hidden bg-black">
+        <div className="min-h-screen relative flex flex-col bg-black">
             {/* Background Image */}
             <div
-                className="absolute inset-0 z-0"
+                className="fixed inset-0 z-0"
                 style={{
                     backgroundImage: "url('https://images.unsplash.com/photo-1440428099904-c6d459a7e7b5?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')",
                     backgroundSize: 'cover',
@@ -122,7 +122,7 @@ export default function LoginPage() {
                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
             </div>
 
-            <div className="relative z-10 flex items-center justify-center min-h-screen w-full p-4">
+            <div className="relative z-10 flex flex-grow items-center justify-center w-full p-4 py-12">
                 <div className="w-full max-w-6xl flex flex-col md:flex-row items-center justify-between gap-12">
 
                     {/* Left Side - Branding & Features */}
